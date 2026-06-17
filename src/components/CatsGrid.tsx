@@ -15,6 +15,7 @@ export function CatsGrid({ categories, allSections, catArticleMap }: Props) {
 
   const visibleCats = categories.filter((cat) => {
     const arts = catArticleMap[cat.id] ?? []
+    if (arts.length === 0) return false
     const filtered = arts.filter((art) => {
       const { countries } = extractTagsFromBody(art.body ?? '')
       if (countries.length === 0) return true
@@ -25,7 +26,7 @@ export function CatsGrid({ categories, allSections, catArticleMap }: Props) {
   })
 
   return (
-    <div className="cats-grid">
+    <div className="cats-grid" style={{ marginBottom: 40 }}>
       {visibleCats.map((cat, i) => (
         <Link
           key={cat.id}
