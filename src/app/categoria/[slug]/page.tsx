@@ -36,12 +36,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
   return (
     <>
       <div className="cat-page-header">
-        <div className="breadcrumb">
-          <Link href="/">Inicio</Link>
-          <span>›</span>
-          <span>{category.name}</span>
-        </div>
-        <div style={{ marginBottom: 12 }}>
+        <div style={{ marginBottom: 16 }}>
           <Link href="/" className="back-btn-top">
             ← Volver al inicio
           </Link>
