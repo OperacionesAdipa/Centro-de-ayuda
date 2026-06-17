@@ -5,11 +5,12 @@ import {
   getArticles,
   slugify,
   CATEGORY_ICONS,
+  extractTagsFromBody,
 } from '@/lib/zendesk'
-import { SearchBar } from '@/components/SearchBar'
 import { FaqSection } from '@/components/FaqSection'
 import { CountryHero } from '@/components/CountryHero'
 import { ContactSection } from '@/components/ContactSection'
+import { CatsGrid } from '@/components/CatsGrid'
 
 export const revalidate = 300
 
@@ -20,24 +21,25 @@ export default async function HomePage() {
     getArticles(),
   ])
 
-  const featured = allArticles
-    .filter((a) => a.promoted)
-    .sort((a, b) => (b.view_count ?? 0) - (a.view_count ?? 0))
-    .slice(0, 6)
-
   const topViewed = [...allArticles]
     .sort((a, b) => (b.view_count ?? 0) - (a.view_count ?? 0))
     .slice(0, 6)
 
+  const featured = allArticles.filter((a) => a.promoted)
   const display = featured.length > 0 ? featured : topViewed
+
   const sectionMap = Object.fromEntries(allSections.map((s) => [s.id, s]))
+
+  const catArticleMap: Record<number, typeof allArticles> = {}
+  for (const cat of categories) {
+    const sections = allSections.filter((s) => s.category_id === cat.id)
+    const arts = allArticles.filter((a) => sections.some((s) => s.id === a.section_id))
+    catArticleMap[cat.id] = arts
+  }
 
   return (
     <>
-      <CountryHero
-        totalCategories={categories.length}
-        totalArticles={allArticles.length}
-      />
+      <CountryHero totalCategories={categories.length} totalArticles={allArticles.length} />
 
       <div className="main">
         <div className="section-header">
@@ -46,24 +48,12 @@ export default async function HomePage() {
             Categorías
           </h2>
         </div>
-        <div className="cats-grid">
-          {categories.map((cat, i) => (
-            <Link
-              key={cat.id}
-              href={`/categoria/${cat.id}-${slugify(cat.name)}`}
-              className={`cat-card ${i % 2 === 0 ? 'purple' : 'blue'}`}
-            >
-              <span className="cat-card-icon">
-                {CATEGORY_ICONS[cat.name] ?? '📁'}
-              </span>
-              <div className="cat-card-name">{cat.name}</div>
-              <div className="cat-card-meta">
-                {allSections.filter((s) => s.category_id === cat.id).length} secciones
-              </div>
-              <span className="cat-card-arrow">→</span>
-            </Link>
-          ))}
-        </div>
+
+        <CatsGrid
+          categories={categories}
+          allSections={allSections}
+          catArticleMap={catArticleMap}
+        />
 
         <div className="section-header">
           <h2 className="section-title">
