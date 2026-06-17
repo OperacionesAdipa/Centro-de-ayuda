@@ -18,18 +18,10 @@ export function ContactSection() {
           No encontraste lo que buscabas, contactanos directamente.
         </p>
         <div className="contact-btns">
-          
-            href={whatsapp}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="contact-btn-whatsapp"
-          >
+          <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="contact-btn-whatsapp">
             WhatsApp
           </a>
-          
-            href={`mailto:${email}`}
-            className="contact-btn-email"
-          >
+          <a href={`mailto:${email}`} className="contact-btn-email">
             {email}
           </a>
         </div>
