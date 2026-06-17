@@ -4,8 +4,7 @@ import {
   getSections,
   getArticles,
   slugify,
-  CATEGORY_ICONS,
-  extractTagsFromBody,
+  ZArticle,
 } from '@/lib/zendesk'
 import { FaqSection } from '@/components/FaqSection'
 import { CountryHero } from '@/components/CountryHero'
@@ -30,7 +29,7 @@ export default async function HomePage() {
 
   const sectionMap = Object.fromEntries(allSections.map((s) => [s.id, s]))
 
-  const catArticleMap: Record<number, typeof allArticles> = {}
+  const catArticleMap: Record<number, ZArticle[]> = {}
   for (const cat of categories) {
     const sections = allSections.filter((s) => s.category_id === cat.id)
     const arts = allArticles.filter((a) => sections.some((s) => s.id === a.section_id))
@@ -39,7 +38,10 @@ export default async function HomePage() {
 
   return (
     <>
-      <CountryHero totalCategories={categories.length} totalArticles={allArticles.length} />
+      <CountryHero
+        totalCategories={categories.length}
+        totalArticles={allArticles.length}
+      />
 
       <div className="main">
         <div className="section-header">
