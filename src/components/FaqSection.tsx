@@ -16,14 +16,12 @@ export function FaqSection({ articles }: { articles: ZArticle[] }) {
     return countries.includes(country)
   })
 
-  const fallback = articles
-    .filter((art) => {
-      const { countries } = extractTagsFromBody(art.body ?? '')
-      if (countries.length === 0) return true
-      if (countries.includes('Todos')) return true
-      return countries.includes(country)
-    })
-    .slice(0, 10)
+  const fallback = articles.filter((art) => {
+    const { countries } = extractTagsFromBody(art.body ?? '')
+    if (countries.length === 0) return true
+    if (countries.includes('Todos')) return true
+    return countries.includes(country)
+  }).slice(0, 10)
 
   const display = filtered.length > 0 ? filtered : fallback
   const visible = showAll ? display : display.slice(0, 5)
