@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { useCountry } from '@/lib/useCountry'
 import { ZArticle, slugify } from '@/lib/zendesk'
+import { replaceAdipaLinks, COUNTRY_EMAIL } from '@/lib/countryUtils'
 
 interface Props {
   article: ZArticle
@@ -17,8 +18,16 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
   const { country } = useCountry()
   const [helpful, setHelpful] = useState<null | boolean>(null)
 
+  const body = replaceAdipaLinks(article.body ?? '', country)
+
   return (
     <>
+      <div style={{ marginBottom: 16 }}>
+        <Link href="/" className="back-btn-top">
+          ← Volver al inicio
+        </Link>
+      </div>
+
       <div className="article-country-badge">
         📍 {country}
       </div>
@@ -27,7 +36,7 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
 
       <div className="article-meta">
         <span>🕐 Actualizado {updatedDate}</span>
-        {article.view_count > 0 && (
+        {(article.view_count ?? 0) > 0 && (
           <span>👁 {article.view_count.toLocaleString()} vistas</span>
         )}
         {categoryName && <span>🏷 {categoryName}</span>}
@@ -35,7 +44,7 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
 
       <div
         className="article-body"
-        dangerouslySetInnerHTML={{ __html: article.body }}
+        dangerouslySetInnerHTML={{ __html: body }}
       />
 
       <div className="article-divider" />
@@ -45,16 +54,10 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
         <div className="helpful-btns">
           {helpful === null ? (
             <>
-              <button
-                className="helpful-btn"
-                onClick={() => setHelpful(true)}
-              >
+              <button className="helpful-btn" onClick={() => setHelpful(true)}>
                 👍 Sí, me ayudó
               </button>
-              <button
-                className="helpful-btn"
-                onClick={() => setHelpful(false)}
-              >
+              <button className="helpful-btn" onClick={() => setHelpful(false)}>
                 Necesito más ayuda
               </button>
             </>
@@ -65,8 +68,8 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
           ) : (
             <span style={{ fontSize: 14, color: '#6b7280' }}>
               Escríbenos a{' '}
-              <a href="mailto:info@adipa.cl" style={{ color: '#704EFD' }}>
-                info@adipa.cl
+              <a href={`mailto:${COUNTRY_EMAIL[country] ?? COUNTRY_EMAIL['Chile']}`} style={{ color: '#704EFD' }}>
+                {COUNTRY_EMAIL[country] ?? COUNTRY_EMAIL['Chile']}
               </a>
             </span>
           )}
@@ -97,10 +100,7 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
 
       {categorySlug && (
         <div style={{ marginTop: 24, textAlign: 'center' }}>
-          <Link
-            href={`/categoria/${categorySlug}`}
-            style={{ fontSize: 13, color: '#704EFD' }}
-          >
+          <Link href={`/categoria/${categorySlug}`} style={{ fontSize: 13, color: '#704EFD' }}>
             ← Volver a {categoryName}
           </Link>
         </div>
