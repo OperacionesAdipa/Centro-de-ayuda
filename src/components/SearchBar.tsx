@@ -9,6 +9,18 @@ export function SearchBar() {
   const [results, setResults] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout>>()
+  const wrapRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setResults([])
+        setQuery('')
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   useEffect(() => {
     if (query.length < 3) { setResults([]); return }
@@ -23,7 +35,7 @@ export function SearchBar() {
   }, [query])
 
   return (
-    <div className="search-wrap">
+    <div className="search-wrap" ref={wrapRef}>
       <div className="search-input-row">
         <span className="search-icon">🔍</span>
         <input
