@@ -300,3 +300,13 @@ details[open] .faq-chevron { transform: rotate(180deg); }
   transition: color 0.15s;
 }
 .footer-terms:hover { color: rgba(255,255,255,0.7); text-decoration: none; }
+.navbar {
+  z-index: 1000;
+}
+
+.country-dropdown {
+  z-index: 1001;
+  position: fixed;
+  top: 56px;
+  right: 24px;
+}
