@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { notFound } from 'next/navigation'
 import {
   getCategories,
   getSections,
@@ -6,102 +7,97 @@ import {
   slugify,
   CATEGORY_ICONS,
 } from '@/lib/zendesk'
-import { SearchBar } from '@/components/SearchBar'
-import { FaqSection } from '@/components/FaqSection'
-import { CountryHero } from '@/components/CountryHero'
 
 export const revalidate = 300
 
-export default async function HomePage() {
-  const [categories, allSections, allArticles] = await Promise.all([
+export async function generateStaticParams() {
+  const categories = await getCategories()
+  return categories.map((c) => ({ slug: `${c.id}-${slugify(c.name)}` }))
+}
+
+export default async function CategoryPage({ params }: { params: { slug: string } }) {
+  const categoryId = parseInt(params.slug.split('-')[0])
+  if (isNaN(categoryId)) notFound()
+
+  const [categories, sections] = await Promise.all([
     getCategories(),
-    getSections(),
-    getArticles(),
+    getSections(categoryId),
   ])
 
-  const featured = allArticles
-    .filter((a) => a.promoted)
-    .sort((a, b) => (b.view_count ?? 0) - (a.view_count ?? 0))
-    .slice(0, 6)
+  const category = categories.find((c) => c.id === categoryId)
+  if (!category) notFound()
 
-  const topViewed = allArticles
-    .sort((a, b) => (b.view_count ?? 0) - (a.view_count ?? 0))
-    .slice(0, 6)
+  const articlesPerSection = await Promise.all(
+    sections.map((s) => getArticles(s.id).then((arts) => ({ section: s, arts })))
+  )
 
-  const display = featured.length > 0 ? featured : topViewed
-
-  const sectionMap = Object.fromEntries(allSections.map((s) => [s.id, s]))
+  const totalArticles = articlesPerSection.reduce((sum, { arts }) => sum + arts.length, 0)
 
   return (
     <>
-      <CountryHero
-        totalCategories={categories.length}
-        totalArticles={allArticles.length}
-      />
+      <div className="cat-page-header">
+        <div className="breadcrumb">
+          <Link href="/">Inicio</Link>
+          <span>›</span>
+          <span>{category.name}</span>
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <Link href="/" className="back-btn-top">
+            ← Volver al inicio
+          </Link>
+        </div>
+        <div className="cat-page-title-row">
+          <div className="cat-page-icon">
+            {CATEGORY_ICONS[category.name] ?? '📁'}
+          </div>
+          <div>
+            <div className="cat-page-name">{category.name}</div>
+            {category.description && (
+              <div className="cat-page-desc">{category.description}</div>
+            )}
+            <div className="cat-page-desc">
+              {sections.length} secciones · {totalArticles} artículos
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="main">
-        <div className="section-header">
-          <h2 className="section-title">
-            <span className="section-title-icon">⊞</span>
-            Categorías
-          </h2>
-        </div>
-        <div className="cats-grid">
-          {categories.map((cat, i) => (
-            <Link
-              key={cat.id}
-              href={`/categoria/${cat.id}-${slugify(cat.name)}`}
-              className={`cat-card ${i % 2 === 0 ? 'purple' : 'blue'}`}
-            >
-              <span className="cat-card-icon">
-                {CATEGORY_ICONS[cat.name] ?? '📁'}
-              </span>
-              <div className="cat-card-name">{cat.name}</div>
-              <div className="cat-card-meta">
-                {allSections.filter((s) => s.category_id === cat.id).length} secciones
-              </div>
-              <span className="cat-card-arrow">→</span>
-            </Link>
-          ))}
-        </div>
-
-        <div className="section-header">
-          <h2 className="section-title">
-            <span className="section-title-icon">🔥</span>
-            Artículos más vistos
-          </h2>
-        </div>
-        <div className="articles-ranked">
-          {display.map((art, i) => {
-            const section = sectionMap[art.section_id]
-            const views = art.view_count ?? 0
-            return (
-              <Link
-                key={art.id}
-                href={`/articulo/${art.id}-${slugify(art.title)}`}
-                className="art-rank-card"
-              >
-                <span className="art-rank-num">{i + 1}</span>
-                <div className="art-rank-info">
-                  <div className="art-rank-title">{art.title}</div>
-                  <div className="art-rank-meta">
-                    {views > 0 && <>👁 {views.toLocaleString()} vistas</>}
-                    {section && <> · {section.name}</>}
+        {articlesPerSection.map(({ section, arts }) => (
+          <div key={section.id} className="section-group">
+            <div className="section-group-name">{section.name}</div>
+            {section.description && (
+              <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 12 }}>
+                {section.description}
+              </p>
+            )}
+            <div className="article-list">
+              {arts.map((art) => (
+                <Link
+                  key={art.id}
+                  href={`/articulo/${art.id}-${slugify(art.title)}`}
+                  className="article-list-item"
+                >
+                  <div className="article-list-icon">📄</div>
+                  <div style={{ flex: 1 }}>
+                    <div className="article-list-title">{art.title}</div>
+                    {(art.view_count ?? 0) > 0 && (
+                      <div className="article-list-meta">
+                        👁 {art.view_count.toLocaleString()} vistas
+                      </div>
+                    )}
                   </div>
-                </div>
-                <span className="art-rank-arrow">›</span>
-              </Link>
-            )
-          })}
-        </div>
-
-        <div className="section-header">
-          <h2 className="section-title">
-            <span className="section-title-icon">❓</span>
-            Preguntas frecuentes
-          </h2>
-        </div>
-        <FaqSection articles={allArticles} />
+                  <span className="article-list-arrow">›</span>
+                </Link>
+              ))}
+              {arts.length === 0 && (
+                <p style={{ fontSize: 13, color: '#aaa', padding: '10px 0' }}>
+                  No hay artículos en esta sección aún.
+                </p>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </>
   )
