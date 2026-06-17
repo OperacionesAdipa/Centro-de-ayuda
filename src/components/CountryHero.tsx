@@ -24,7 +24,7 @@ export function CountryHero({ totalCategories, totalArticles }: Props) {
       <SearchBar />
       <div className="hero-stats">
         <div>
-          <div className="hero-stat-n">{totalArticles}</div>
+          <div className="hero-stat-n">+200</div>
           <div className="hero-stat-l">artículos</div>
         </div>
         <div>
