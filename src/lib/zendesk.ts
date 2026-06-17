@@ -115,21 +115,19 @@ export function extractTagsFromBody(body: string): { countries: string[]; isFaq:
   const countries: string[] = []
   let isFaq = false
 
+  const plainText = body.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ')
   const tagRegex = /#([a-záéíóúüñA-ZÁÉÍÓÚÜÑ]+)/gi
-  const allTags = [...body.matchAll(tagRegex)]
+  const allTags = [...plainText.matchAll(tagRegex)]
 
   allTags.forEach((m) => {
     const normalized = normalizeTag(m[1])
     if (normalized === 'faq') { isFaq = true; return }
     const mapped = COUNTRY_TAG_MAP[normalized]
-    if (mapped) countries.push(mapped)
+    if (mapped && !countries.includes(mapped)) countries.push(mapped)
   })
 
   const cleanBody = body
-    .replace(/<p[^>]*>\s*(#[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s#]+)\s*<\/p>/gi, (match, content) => {
-      const onlyTags = content.trim().replace(/#[a-záéíóúüñA-ZÁÉÍÓÚÜÑ]+/gi, '').trim()
-      return onlyTags === '' ? '' : match
-    })
+    .replace(/<p[^>]*>\s*(<[^>]*>)*\s*(#[a-záéíóúüñA-ZÁÉÍÓÚÜÑ]+\s*)+\s*(<\/[^>]*>)*\s*<\/p>/gi, '')
     .replace(/#[a-záéíóúüñA-ZÁÉÍÓÚÜÑ]+/gi, '')
     .trim()
 
