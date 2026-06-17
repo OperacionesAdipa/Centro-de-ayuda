@@ -19,16 +19,16 @@ export default async function HomePage() {
     getArticles(),
   ])
 
-  const promoted = allArticles
+  const featured = allArticles
     .filter((a) => a.promoted)
-    .sort((a, b) => b.view_count - a.view_count)
+    .sort((a, b) => (b.view_count ?? 0) - (a.view_count ?? 0))
     .slice(0, 6)
 
   const topViewed = allArticles
-    .sort((a, b) => b.view_count - a.view_count)
+    .sort((a, b) => (b.view_count ?? 0) - (a.view_count ?? 0))
     .slice(0, 6)
 
-  const featured = promoted.length > 0 ? promoted : topViewed
+  const display = featured.length > 0 ? featured : topViewed
 
   const sectionMap = Object.fromEntries(allSections.map((s) => [s.id, s]))
 
@@ -40,7 +40,6 @@ export default async function HomePage() {
       />
 
       <div className="main">
-        {/* Categorías */}
         <div className="section-header">
           <h2 className="section-title">
             <span className="section-title-icon">⊞</span>
@@ -66,7 +65,6 @@ export default async function HomePage() {
           ))}
         </div>
 
-        {/* Artículos destacados */}
         <div className="section-header">
           <h2 className="section-title">
             <span className="section-title-icon">🔥</span>
@@ -74,8 +72,9 @@ export default async function HomePage() {
           </h2>
         </div>
         <div className="articles-ranked">
-          {featured.map((art, i) => {
+          {display.map((art, i) => {
             const section = sectionMap[art.section_id]
+            const views = art.view_count ?? 0
             return (
               <Link
                 key={art.id}
@@ -86,7 +85,7 @@ export default async function HomePage() {
                 <div className="art-rank-info">
                   <div className="art-rank-title">{art.title}</div>
                   <div className="art-rank-meta">
-                    👁 {art.view_count.toLocaleString()} vistas
+                    {views > 0 && <>👁 {views.toLocaleString()} vistas</>}
                     {section && <> · {section.name}</>}
                   </div>
                 </div>
@@ -96,7 +95,6 @@ export default async function HomePage() {
           })}
         </div>
 
-        {/* FAQ */}
         <div className="section-header">
           <h2 className="section-title">
             <span className="section-title-icon">❓</span>
