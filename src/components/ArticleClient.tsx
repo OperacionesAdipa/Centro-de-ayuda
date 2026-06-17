@@ -23,7 +23,7 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
   return (
     <>
       <div style={{ marginBottom: 16 }}>
-        <Link href="/" className="back-btn-top">
+        <Link href="/" className="back-btn-top back-btn-solid">
           ← Volver al inicio
         </Link>
       </div>
