@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { useCountry } from '@/lib/useCountry'
-import { ZArticle, slugify, extractTagsFromBody } from '@/lib/zendesk'
+import { ZArticle, slugify, extractTagsFromBody, fixMediaUrls } from '@/lib/zendesk'
 import { replaceAdipaLinks, COUNTRY_EMAIL } from '@/lib/countryUtils'
 
 interface Props {
@@ -19,7 +19,7 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
   const [helpful, setHelpful] = useState<null | boolean>(null)
 
   const { cleanBody } = extractTagsFromBody(article.body ?? '')
-  const body = replaceAdipaLinks(cleanBody, country)
+  const body = fixMediaUrls(replaceAdipaLinks(cleanBody, country))
 
   return (
     <>
