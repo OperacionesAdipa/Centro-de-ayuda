@@ -12,10 +12,10 @@ export function ContactSection() {
   return (
     <div className="contact-section">
       <div className="contact-section-inner">
-        <div className="contact-icon">💬</div>
-        <h3 className="contact-title">¿Necesitas más ayuda?</h3>
+        <div className="contact-icon">&#128172;</div>
+        <h3 className="contact-title">Necesitas mas ayuda?</h3>
         <p className="contact-sub">
-          No encontraste lo que buscabas, contáctanos directamente.
+          No encontraste lo que buscabas, contactanos directamente.
         </p>
         <div className="contact-btns">
           
@@ -24,13 +24,13 @@ export function ContactSection() {
             rel="noopener noreferrer"
             className="contact-btn-whatsapp"
           >
-            <span>💬</span> WhatsApp
+            WhatsApp
           </a>
           
             href={`mailto:${email}`}
             className="contact-btn-email"
           >
-            <span>✉️</span> {email}
+            {email}
           </a>
         </div>
       </div>
