@@ -146,6 +146,12 @@ export function filterArticlesByCountry(articles: ZArticle[], country: string): 
   })
 }
 
+export function fixMediaUrls(html: string): string {
+  return html.replace(
+    /https:\/\/adipa\.zendesk\.com\/guide-media\//g,
+    '/media/'
+  )
+}
 export const CATEGORY_ICONS: Record<string, string> = {
   Accesos: '🔑',
   Adipartners: '🤝',
