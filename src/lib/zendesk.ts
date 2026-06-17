@@ -80,11 +80,6 @@ export async function getArticle(articleId: number): Promise<ZArticle> {
   return data.article
 }
 
-export async function getPromotedArticles(): Promise<ZArticle[]> {
-  const all = await getArticles()
-  return all.filter((a) => a.promoted).slice(0, 6)
-}
-
 export async function searchArticles(query: string): Promise<ZArticle[]> {
   const url = `https://${SUBDOMAIN}.zendesk.com/api/v2/help_center/articles/search.json?query=${encodeURIComponent(query)}&locale=${LOCALE}`
   const res = await fetch(url, {
@@ -107,31 +102,37 @@ export function slugify(text: string): string {
 const COUNTRY_TAG_MAP: Record<string, string> = {
   chile: 'Chile',
   mexico: 'México',
-  méxico: 'México',
+  mexico: 'México',
   colombia: 'Colombia',
   argentina: 'Argentina',
   todos: 'Todos',
 }
 
+function normalizeTag(tag: string): string {
+  return tag.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
 export function extractTagsFromBody(body: string): { countries: string[]; isFaq: boolean; cleanBody: string } {
-  const tagRegex = /#([a-záéíóúüñA-ZÁÉÍÓÚÜÑ]+)/gi
   const countries: string[] = []
   let isFaq = false
 
-  const lastParagraphMatch = body.match(/(<p[^>]*>)?([^<]*)(<\/p>)?$/i)
-  const fullText = body.replace(/<[^>]*>/g, '')
-  const lines = fullText.split('\n')
-  const lastLine = lines[lines.length - 1] ?? ''
+  const tagRegex = /#([a-záéíóúüñA-ZÁÉÍÓÚÜÑ]+)/gi
+  const allTags = [...body.matchAll(tagRegex)]
 
-  const matches = [...lastLine.matchAll(tagRegex)]
-  matches.forEach((m) => {
-    const tag = m[1].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    if (tag === 'faq') { isFaq = true; return }
-    const mapped = COUNTRY_TAG_MAP[tag]
+  allTags.forEach((m) => {
+    const normalized = normalizeTag(m[1])
+    if (normalized === 'faq') { isFaq = true; return }
+    const mapped = COUNTRY_TAG_MAP[normalized]
     if (mapped) countries.push(mapped)
   })
 
-  const cleanBody = body.replace(/(#[a-záéíóúüñA-ZÁÉÍÓÚÜÑ]+\s*)+$/gi, '').trim()
+  const cleanBody = body
+    .replace(/<p[^>]*>\s*(#[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s#]+)\s*<\/p>/gi, (match, content) => {
+      const onlyTags = content.trim().replace(/#[a-záéíóúüñA-ZÁÉÍÓÚÜÑ]+/gi, '').trim()
+      return onlyTags === '' ? '' : match
+    })
+    .replace(/#[a-záéíóúüñA-ZÁÉÍÓÚÜÑ]+/gi, '')
+    .trim()
 
   return { countries, isFaq, cleanBody }
 }
