@@ -11,13 +11,12 @@ export function Footer() {
   return (
     <footer className="footer">
       <a href={`https://www.adipa.${domain}`} target="_blank" rel="noopener noreferrer" className="footer-logo">
-        <img
-          src="https://adipa.cl/content/uploads/2022/10/logo-adipa.svg"
-          alt="ADIPA"
-          style={{ height: 28, width: 'auto', filter: 'brightness(0) invert(1)' }}
-        />
+        <img src="https://adipa.cl/content/uploads/2022/10/logo-adipa.svg" alt="ADIPA" style={{ height: 28, width: 'auto', filter: 'brightness(0) invert(1)' }} />
       </a>
       <p className="footer-copy">© {year} ADIPA. Todos los derechos reservados.</p>
+      <a href={`https://adipa.${domain}/terminos-y-condiciones/`} target="_blank" rel="noopener noreferrer" className="footer-terms">
+        Términos y condiciones
+      </a>
     </footer>
   )
 }
