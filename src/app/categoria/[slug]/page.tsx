@@ -15,11 +15,7 @@ export async function generateStaticParams() {
   return categories.map((c) => ({ slug: `${c.id}-${slugify(c.name)}` }))
 }
 
-export default async function CategoryPage({
-  params,
-}: {
-  params: { slug: string }
-}) {
+export default async function CategoryPage({ params }: { params: { slug: string } }) {
   const categoryId = parseInt(params.slug.split('-')[0])
   if (isNaN(categoryId)) notFound()
 
@@ -35,10 +31,7 @@ export default async function CategoryPage({
     sections.map((s) => getArticles(s.id).then((arts) => ({ section: s, arts })))
   )
 
-  const totalArticles = articlesPerSection.reduce(
-    (sum, { arts }) => sum + arts.length,
-    0
-  )
+  const totalArticles = articlesPerSection.reduce((sum, { arts }) => sum + arts.length, 0)
 
   return (
     <>
@@ -47,6 +40,11 @@ export default async function CategoryPage({
           <Link href="/">Inicio</Link>
           <span>›</span>
           <span>{category.name}</span>
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <Link href="/" className="back-btn-top">
+            ← Volver al inicio
+          </Link>
         </div>
         <div className="cat-page-title-row">
           <div className="cat-page-icon">
@@ -61,9 +59,6 @@ export default async function CategoryPage({
               {sections.length} secciones · {totalArticles} artículos
             </div>
           </div>
-        </div>
-        <div className="url-chip">
-          🔗 ayuda.adipa.cl/categoria/{params.slug}
         </div>
       </div>
 
@@ -86,7 +81,7 @@ export default async function CategoryPage({
                   <div className="article-list-icon">📄</div>
                   <div style={{ flex: 1 }}>
                     <div className="article-list-title">{art.title}</div>
-                    {art.view_count > 0 && (
+                    {(art.view_count ?? 0) > 0 && (
                       <div className="article-list-meta">
                         👁 {art.view_count.toLocaleString()} vistas
                       </div>
