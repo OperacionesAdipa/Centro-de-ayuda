@@ -1,20 +1,23 @@
 'use client'
 
 import { useCountry } from '@/lib/useCountry'
+import { COUNTRY_DOMAIN } from '@/lib/countryUtils'
 
 export function Footer() {
   const { country } = useCountry()
+  const domain = COUNTRY_DOMAIN[country] ?? 'cl'
+  const year = new Date().getFullYear()
+
   return (
     <footer className="footer">
-      <p className="footer-contact-text">¿No encontraste lo que buscabas?</p>
-      <p className="footer-contact-sub">Estamos aquí para ayudarte</p>
-      <div className="footer-btns">
-        <a href="https://adipa.cl/contacto" className="footer-btn pri">💬 Contactar soporte</a>
-        <a href="mailto:info@adipa.cl" className="footer-btn sec">✉️ info@adipa.cl</a>
-      </div>
-      <div className="footer-region">
-        📍 Región: {country}
-      </div>
+      <a href={`https://www.adipa.${domain}`} target="_blank" rel="noopener noreferrer" className="footer-logo">
+        <img
+          src="https://adipa.cl/content/uploads/2022/10/logo-adipa.svg"
+          alt="ADIPA"
+          style={{ height: 28, width: 'auto', filter: 'brightness(0) invert(1)' }}
+        />
+      </a>
+      <p className="footer-copy">© {year} ADIPA. Todos los derechos reservados.</p>
     </footer>
   )
 }
