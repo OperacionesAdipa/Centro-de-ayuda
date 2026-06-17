@@ -104,24 +104,45 @@ export function slugify(text: string): string {
     .replace(/(^-|-$)/g, '')
 }
 
-export function filterByCountry(
-  items: { label_names?: string[] }[],
-  country: string
-): typeof items {
-  const tag = `pais_${country.toLowerCase()}`
-  return items.filter((item) => {
-    const labels = item.label_names ?? []
-    if (labels.length === 0) return true
-    if (labels.includes('pais_todos')) return true
-    return labels.includes(tag)
-  })
+const COUNTRY_TAG_MAP: Record<string, string> = {
+  chile: 'Chile',
+  mexico: 'México',
+  méxico: 'México',
+  colombia: 'Colombia',
+  argentina: 'Argentina',
+  todos: 'Todos',
 }
 
-export const COUNTRY_TAGS: Record<string, string> = {
-  Chile: 'pais_chile',
-  México: 'pais_mexico',
-  Colombia: 'pais_colombia',
-  Argentina: 'pais_argentina',
+export function extractTagsFromBody(body: string): { countries: string[]; isFaq: boolean; cleanBody: string } {
+  const tagRegex = /#([a-záéíóúüñA-ZÁÉÍÓÚÜÑ]+)/gi
+  const countries: string[] = []
+  let isFaq = false
+
+  const lastParagraphMatch = body.match(/(<p[^>]*>)?([^<]*)(<\/p>)?$/i)
+  const fullText = body.replace(/<[^>]*>/g, '')
+  const lines = fullText.split('\n')
+  const lastLine = lines[lines.length - 1] ?? ''
+
+  const matches = [...lastLine.matchAll(tagRegex)]
+  matches.forEach((m) => {
+    const tag = m[1].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    if (tag === 'faq') { isFaq = true; return }
+    const mapped = COUNTRY_TAG_MAP[tag]
+    if (mapped) countries.push(mapped)
+  })
+
+  const cleanBody = body.replace(/(#[a-záéíóúüñA-ZÁÉÍÓÚÜÑ]+\s*)+$/gi, '').trim()
+
+  return { countries, isFaq, cleanBody }
+}
+
+export function filterArticlesByCountry(articles: ZArticle[], country: string): ZArticle[] {
+  return articles.filter((art) => {
+    const { countries } = extractTagsFromBody(art.body ?? '')
+    if (countries.length === 0) return true
+    if (countries.includes('Todos')) return true
+    return countries.includes(country)
+  })
 }
 
 export const CATEGORY_ICONS: Record<string, string> = {
