@@ -19,7 +19,11 @@ export function Navbar() {
     <>
       <nav className="navbar">
         <Link href="/" className="navbar-logo">
-          <div className="logo-pill">ADIPA</div>
+          <img
+            src="https://adipa.cl/content/uploads/2022/10/logo-adipa.svg"
+            alt="ADIPA"
+            style={{ height: 32, width: 'auto' }}
+          />
           <span className="navbar-subtitle">Centro de ayuda</span>
         </Link>
         <div className="navbar-right">
