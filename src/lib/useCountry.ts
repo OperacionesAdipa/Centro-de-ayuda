@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 const COUNTRIES = ['Chile', 'México', 'Colombia', 'Argentina']
 const STORAGE_KEY = 'adipa_country'
@@ -10,6 +10,13 @@ const COUNTRY_MAP: Record<string, string> = {
   MX: 'México',
   CO: 'Colombia',
   AR: 'Argentina',
+}
+
+type CountryListener = (country: string) => void
+const listeners: Set<CountryListener> = new Set()
+
+function notifyListeners(country: string) {
+  listeners.forEach((fn) => fn(country))
 }
 
 export function useCountry() {
@@ -37,10 +44,17 @@ export function useCountry() {
       })
   }, [])
 
-  function setCountry(c: string) {
+  useEffect(() => {
+    const listener: CountryListener = (c) => setCountryState(c)
+    listeners.add(listener)
+    return () => { listeners.delete(listener) }
+  }, [])
+
+  const setCountry = useCallback((c: string) => {
     setCountryState(c)
     localStorage.setItem(STORAGE_KEY, c)
-  }
+    notifyListeners(c)
+  }, [])
 
   return { country, setCountry, detected, COUNTRIES }
 }
