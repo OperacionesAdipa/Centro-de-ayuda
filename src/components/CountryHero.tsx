@@ -13,7 +13,7 @@ export function CountryHero({ totalCategories, totalArticles }: Props) {
 
   return (
     <section className="hero">
-      <div className="hero-tag">✨ Centro de ayuda {country}</div>
+      <div className="hero-tag">✨ Centro de ayuda</div>
       <h1>
         Hola, ¿en qué te<br />
         podemos <span>ayudar?</span>
