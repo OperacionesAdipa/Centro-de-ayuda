@@ -7,6 +7,7 @@ import {
   slugify,
   CATEGORY_ICONS,
 } from '@/lib/zendesk'
+import { CategoryArticles } from '@/components/CategoryArticles'
 
 export const revalidate = 300
 
@@ -53,41 +54,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
       </div>
 
       <div className="main">
-        {articlesPerSection.map(({ section, arts }) => (
-          <div key={section.id} className="section-group">
-            <div className="section-group-name">{section.name}</div>
-            {section.description && (
-              <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 12 }}>
-                {section.description}
-              </p>
-            )}
-            <div className="article-list">
-              {arts.map((art) => (
-                <Link
-                  key={art.id}
-                  href={`/articulo/${art.id}-${slugify(art.title)}`}
-                  className="article-list-item"
-                >
-                  <div className="article-list-icon">📄</div>
-                  <div style={{ flex: 1 }}>
-                    <div className="article-list-title">{art.title}</div>
-                    {(art.view_count ?? 0) > 0 && (
-                      <div className="article-list-meta">
-                        👁 {art.view_count.toLocaleString()} vistas
-                      </div>
-                    )}
-                  </div>
-                  <span className="article-list-arrow">›</span>
-                </Link>
-              ))}
-              {arts.length === 0 && (
-                <p style={{ fontSize: 13, color: '#aaa', padding: '10px 0' }}>
-                  No hay artículos en esta sección aún.
-                </p>
-              )}
-            </div>
-          </div>
-        ))}
+        <CategoryArticles articlesPerSection={articlesPerSection} />
       </div>
     </>
   )
