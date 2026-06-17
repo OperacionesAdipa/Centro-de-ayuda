@@ -102,7 +102,6 @@ export function slugify(text: string): string {
 const COUNTRY_TAG_MAP: Record<string, string> = {
   chile: 'Chile',
   mexico: 'México',
-  mexico: 'México',
   colombia: 'Colombia',
   argentina: 'Argentina',
   todos: 'Todos',
