@@ -127,8 +127,11 @@ export function extractTagsFromBody(body: string): { countries: string[]; isFaq:
   })
 
   const cleanBody = body
-    .replace(/<p[^>]*>\s*(<[^>]*>)*\s*(#[a-záéíóúüñA-ZÁÉÍÓÚÜÑ]+\s*)+\s*(<\/[^>]*>)*\s*<\/p>/gi, '')
-    .replace(/#[a-záéíóúüñA-ZÁÉÍÓÚÜÑ]+/gi, '')
+    .replace(/<p[^>]*>[\s\S]*?<\/p>/gi, (match) => {
+      const text = match.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+      const onlyTags = text.replace(/#[a-záéíóúüñA-ZÁÉÍÓÚÜÑ]+/gi, '').trim()
+      return onlyTags === '' ? '' : match
+    })
     .trim()
 
   return { countries, isFaq, cleanBody }
