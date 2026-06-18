@@ -1,39 +1,64 @@
-import { notFound } from 'next/navigation'
-import { getArticle, getArticles, getSections, getCategories, slugify } from '@/lib/zendesk'
-import { ArticleClient } from '@/components/ArticleClient'
-import { ArticleSidebar } from '@/components/ArticleSidebar'
 import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import {
+  getCategories,
+  getSections,
+  getArticles,
+  slugify,
+  CATEGORY_ICONS,
+  ZArticle,
+  ZSection,
+} from '@/lib/zendesk'
+import { CategoryArticles } from '@/components/CategoryArticles'
+import { ArticleSidebar } from '@/components/ArticleSidebar'
 
 export const revalidate = 300
 
-export default async function ArticlePage({ params }: { params: { slug: string } }) {
-  const articleId = parseInt(params.slug.split('-')[0])
-  if (isNaN(articleId)) notFound()
+const SECTION_ICONS: Record<string, string> = {
+  'Cursos Síncronos': '🎥',
+  'Cursos Asíncronos': '📚',
+  'Diplomados y Postítulos': '🎓',
+  'Especializaciones': '⭐',
+  'Seminarios': '📡',
+  'Sesiones Magistrales': '🏛️',
+  'Acreditaciones Internacionales': '🏅',
+  'Inscripciones': '📋',
+  'Formas de pago': '💳',
+  'Beneficios': '🎁',
+  'Comunidad': '👥',
+  'Mi perfil': '👤',
+  'Accesos': '🔑',
+  'Preguntas frecuentes': '❓',
+}
 
-  const article = await getArticle(articleId).catch(() => null)
-  if (!article) notFound()
+export default async function CategoryPage({ params }: { params: { slug: string } }) {
+  const categoryId = parseInt(params.slug.split('-')[0])
+  if (isNaN(categoryId)) notFound()
 
-  const [allSections, categories] = await Promise.all([
-    getSections(),
+  const [categories, sections, allSections] = await Promise.all([
     getCategories(),
+    getSections(categoryId),
+    getSections(),
   ])
 
-  const section = allSections.find((s) => s.id === article.section_id)
-  const category = section
-    ? categories.find((c) => c.id === section.category_id)
-    : null
+  const category = categories.find((c) => c.id === categoryId)
+  if (!category) notFound()
+
+  const articlesPerSection = await Promise.all(
+    sections.map((s) => getArticles(s.id).then((arts) => ({ section: s, arts })))
+  )
 
   const allArticles = await getArticles()
+  const totalArticles = articlesPerSection.reduce((sum, { arts }) => sum + arts.length, 0)
 
-  const relatedArticles = section
-    ? allArticles
-        .filter((a) => a.section_id === section.id && a.id !== article.id)
-        .slice(0, 3)
-    : []
-
-  const updatedDate = new Date(article.updated_at).toLocaleDateString('es-CL', {
-    year: 'numeric', month: 'long', day: 'numeric',
-  })
+  const UPDATED_ICONS: Record<string, string> = {
+    'Admisión y Matrícula': '📋',
+    'Comunidad y Beneficios': '🎁',
+    'Sitio Web': '🌐',
+    'Aula Virtual': '💻',
+    'Programas y Cursos': '🎓',
+    'Preguntas frecuentes': '❓',
+  }
 
   return (
     <div className="article-layout">
@@ -41,21 +66,78 @@ export default async function ArticlePage({ params }: { params: { slug: string }
         categories={categories}
         sections={allSections}
         articles={allArticles}
-        currentCategoryId={category?.id}
-        currentSectionId={section?.id}
-        currentArticleId={article.id}
+        currentCategoryId={categoryId}
       />
       <div className="article-main">
-        <div className="article-page">
-          <ArticleClient
-            article={article}
-            updatedDate={updatedDate}
-            categoryName={category?.name}
-            categorySlug={category ? `${category.id}-${slugify(category.name)}` : undefined}
-            relatedArticles={relatedArticles}
-          />
+        <div className="cat-page-header">
+          <div style={{ marginBottom: 16 }}>
+            <Link href="/" className="back-btn-top back-btn-solid">
+              ← Volver al inicio
+            </Link>
+          </div>
+          <div className="cat-page-title-row">
+            <div className="cat-page-icon">
+              {UPDATED_ICONS[category.name] ?? CATEGORY_ICONS[category.name] ?? '📁'}
+            </div>
+            <div>
+              <div className="cat-page-name">{category.name}</div>
+              {category.description && (
+                <div className="cat-page-desc">{category.description}</div>
+              )}
+              <div className="cat-page-desc">
+                {sections.length} secciones · {totalArticles} artículos
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="main">
+          {sections.length > 4 ? (
+            <CategoryWithSectionGrid
+              sections={sections}
+              articlesPerSection={articlesPerSection}
+              sectionIcons={SECTION_ICONS}
+            />
+          ) : (
+            <CategoryArticles articlesPerSection={articlesPerSection} />
+          )}
         </div>
       </div>
+    </div>
+  )
+}
+
+function CategoryWithSectionGrid({
+  sections,
+  articlesPerSection,
+  sectionIcons,
+}: {
+  sections: ZSection[]
+  articlesPerSection: { section: ZSection; arts: ZArticle[] }[]
+  sectionIcons: Record<string, string>
+}) {
+  return (
+    <div>
+      <div className="section-cards-grid">
+        {sections.map((sec, i) => {
+          const entry = articlesPerSection.find((a) => a.section.id === sec.id)
+          const count = entry?.arts.length ?? 0
+          return (
+            
+              key={sec.id}
+              href={`#section-${sec.id}`}
+              className={`section-card ${i % 2 === 0 ? 'purple' : 'blue'}`}
+            >
+              <span className="section-card-icon">
+                {sectionIcons[sec.name] ?? '📄'}
+              </span>
+              <div className="section-card-name">{sec.name}</div>
+              <div className="section-card-meta">{count} artículos</div>
+            </a>
+          )
+        })}
+      </div>
+      <CategoryArticles articlesPerSection={articlesPerSection} />
     </div>
   )
 }
