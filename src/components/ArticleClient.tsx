@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useCountry } from '@/lib/useCountry'
 import { ZArticle, slugify, extractTagsFromBody, fixMediaUrls } from '@/lib/zendesk'
-import { replaceAdipaLinks, replaceMexicoTerms, COUNTRY_EMAIL, COUNTRY_WHATSAPP } from '@/lib/countryUtils'
+import { replaceAdipaLinks, replaceMexicoTerms, COUNTRY_WHATSAPP } from '@/lib/countryUtils'
 
 interface Props {
   article: ZArticle
@@ -17,6 +18,7 @@ interface Props {
 export function ArticleClient({ article, updatedDate, categoryName, categorySlug, relatedArticles }: Props) {
   const { country } = useCountry()
   const [helpful, setHelpful] = useState<null | boolean>(null)
+  const router = useRouter()
 
   const { cleanBody } = extractTagsFromBody(article.body ?? '')
   const body = replaceMexicoTerms(fixMediaUrls(replaceAdipaLinks(cleanBody, country)), country)
@@ -25,7 +27,10 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
 
   return (
     <>
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+        <button onClick={() => router.back()} className="back-btn-top">
+          ← Volver atrás
+        </button>
         <Link href="/" className="back-btn-top back-btn-solid">
           ← Volver al inicio
         </Link>
@@ -57,18 +62,20 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
               <button className="helpful-btn" onClick={() => setHelpful(true)}>
                 👍 Sí, me ayudó
               </button>
-              <button className="helpful-btn" onClick={() => setHelpful(false)}>
+              
+                href={whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="helpful-btn"
+                onClick={() => setHelpful(false)}
+              >
                 Necesito más ayuda
-              </button>
+              </a>
             </>
-          ) : helpful ? (
+          ) : (
             <span style={{ fontSize: 14, color: '#704EFD', fontWeight: 500 }}>
               ¡Gracias por tu feedback! 🎉
             </span>
-          ) : (
-            <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="contact-btn-whatsapp" style={{ display: 'inline-flex', fontSize: 13, padding: '7px 16px' }}>
-              💬 Contactar por WhatsApp
-            </a>
           )}
         </div>
       </div>
