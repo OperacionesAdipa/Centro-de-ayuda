@@ -60,10 +60,17 @@ export async function getCategories(): Promise<ZCategory[]> {
 }
 
 export async function getSections(categoryId?: number): Promise<ZSection[]> {
-  const path = categoryId
-    ? `/categories/${categoryId}/sections.json?per_page=100`
-    : '/sections.json?per_page=100'
-  const data = await zFetch(path)
+  if (categoryId) {
+    const data = await zFetch(`/categories/${categoryId}/sections.json?per_page=100`)
+    const sections = data.sections ?? []
+    const seen = new Set<number>()
+    return sections.filter((s: ZSection) => {
+      if (seen.has(s.id)) return false
+      seen.add(s.id)
+      return s.category_id === categoryId
+    })
+  }
+  const data = await zFetch('/sections.json?per_page=100')
   return data.sections ?? []
 }
 
@@ -152,6 +159,7 @@ export function fixMediaUrls(html: string): string {
     '/media/'
   )
 }
+
 export const CATEGORY_ICONS: Record<string, string> = {
   'Admisión y Matrícula': '📋',
   'Comunidad y Beneficios': '🎁',
