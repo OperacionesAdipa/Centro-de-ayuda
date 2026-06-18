@@ -3,8 +3,17 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { useCountry } from '@/lib/useCountry'
-import { ZCategory, ZSection, ZArticle, slugify } from '@/lib/zendesk'
+import { ZCategory, ZSection, ZArticle, slugify, CATEGORY_ICONS } from '@/lib/zendesk'
 import { replaceMexicoTerms } from '@/lib/countryUtils'
+
+const UPDATED_ICONS: Record<string, string> = {
+  'Admisión y Matrícula': '📋',
+  'Comunidad y Beneficios': '🎁',
+  'Sitio Web': '🌐',
+  'Aula Virtual': '💻',
+  'Programas y Cursos': '🎓',
+  'Preguntas frecuentes': '❓',
+}
 
 interface Props {
   categories: ZCategory[]
@@ -27,6 +36,7 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
         const catSections = sections.filter((s) => s.category_id === cat.id)
         const isCatExpanded = expandedCat === cat.id
         const isCatActive = currentCategoryId === cat.id
+        const icon = UPDATED_ICONS[cat.name] ?? CATEGORY_ICONS[cat.name] ?? '📁'
 
         return (
           <div key={cat.id} className="sidebar-cat">
@@ -34,7 +44,8 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
               className={`sidebar-cat-btn ${isCatActive ? 'active' : ''}`}
               onClick={() => setExpandedCat(isCatExpanded ? null : cat.id)}
             >
-              <span>{replaceMexicoTerms(cat.name, country)}</span>
+              <span className="sidebar-cat-icon">{icon}</span>
+              <span className="sidebar-cat-name">{replaceMexicoTerms(cat.name, country)}</span>
               <span className="sidebar-arrow">{isCatExpanded ? '▾' : '›'}</span>
             </button>
 
