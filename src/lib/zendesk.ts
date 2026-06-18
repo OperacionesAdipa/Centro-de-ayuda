@@ -153,21 +153,10 @@ export function fixMediaUrls(html: string): string {
   )
 }
 export const CATEGORY_ICONS: Record<string, string> = {
-  Accesos: '🔑',
-  Adipartners: '🤝',
+  'Admisión y Matrícula': '📋',
+  'Comunidad y Beneficios': '🎁',
+  'Sitio Web': '🌐',
   'Aula Virtual': '💻',
-  'Acreditaciones Internacionales': '🏅',
-  Beneficios: '🎁',
-  'Clasificación Productos': '📦',
-  Comunidad: '👥',
-  'Cursos Síncronos': '🎥',
-  'Cursos Asíncronos': '📚',
-  'Diplomados y Postítulos': '🎓',
-  Especializaciones: '⭐',
-  Inscripciones: '📋',
-  'Mi perfil': '👤',
+  'Programas y Cursos': '🎓',
   'Preguntas frecuentes': '❓',
-  'Recursos Gratuitos': '🆓',
-  Seminarios: '📡',
-  'Sesiones Magistrales': '🏛️',
 }
