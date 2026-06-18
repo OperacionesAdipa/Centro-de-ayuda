@@ -26,7 +26,6 @@ const SECTION_ICONS: Record<string, string> = {
   'Evaluación y certificación': '📝',
   'Calendarización y Programas': '📅',
   'Clases en vivo': '💻',
-  'Diplomados y Postítulos': '🎓',
 }
 
 interface Props {
