@@ -8,6 +8,7 @@ import {
   CATEGORY_ICONS,
   ZArticle,
   ZSection,
+  extractTagsFromBody,
 } from '@/lib/zendesk'
 import { CategoryArticles } from '@/components/CategoryArticles'
 import { ArticleSidebar } from '@/components/ArticleSidebar'
@@ -42,6 +43,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
   )
 
   const allArticles = await getArticles()
+
   const totalArticles = articlesPerSection.reduce((sum, { arts }) => sum + arts.length, 0)
 
   return (
@@ -68,7 +70,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
               {category.description && (
                 <div className="cat-page-desc">{category.description}</div>
               )}
-              <div className="cat-page-desc">
+              <div className="cat-page-desc" id="cat-section-count">
                 {sections.length} secciones · {totalArticles} artículos
               </div>
             </div>
@@ -76,7 +78,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
         </div>
 
         <div className="main">
-          {sections.length > 1 ? (
+          {sections.length >= 2 ? (
             <SectionCardsGrid
               sections={sections}
               articlesPerSection={articlesPerSection}
