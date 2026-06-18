@@ -21,11 +21,28 @@ const SECTION_ICONS: Record<string, string> = {
   'Mi perfil': '👤',
   'Accesos': '🔑',
   'Preguntas frecuentes': '❓',
+  'Preguntas Frecuentes': '❓',
   'Cursos Síncronos - En vivo': '🎥',
   'Certificados de Seminarios': '🏅',
   'Evaluación y certificación': '📝',
   'Calendarización y Programas': '📅',
   'Clases en vivo': '💻',
+  'ADIPARTNERS': '🤝',
+  'Adipartners': '🤝',
+  'Comunidad ADIPA': '👥',
+  'Recursos Gratuitos': '🆓',
+  'Funcionalidad del Aula': '💻',
+  'Recursos desde el Aula': '📚',
+  'Accesos al Aula Virtual': '🔑',
+  'Programas': '🎓',
+  'Certificados': '🏅',
+  'Beneficios Chile': '🎁',
+  'Beneficios México': '🎁',
+  'Beneficios Colombia': '🎁',
+  'Preguntas frecuentes Ventas': '❓',
+  'Productos ADIPA': '📦',
+  'Precios programas': '💰',
+  'Inscripciones y Formas de pago': '💳',
 }
 
 interface Props {
@@ -64,6 +81,7 @@ export function SectionCardsGrid({ sections, articlesPerSection }: Props) {
         }) ?? []
         const isActive = activeSection === sec.id
         const count = arts.length
+        const icon = SECTION_ICONS[sec.name] ?? '📂'
 
         return (
           <div key={sec.id} className="section-accordion-item">
@@ -72,9 +90,7 @@ export function SectionCardsGrid({ sections, articlesPerSection }: Props) {
               onClick={() => setActiveSection(isActive ? null : sec.id)}
               style={{ width: '100%', border: 'none', cursor: 'pointer', textAlign: 'left' }}
             >
-              <span className="section-card-large-icon">
-                {SECTION_ICONS[sec.name] ?? '📄'}
-              </span>
+              <span className="section-card-large-icon">{icon}</span>
               <div style={{ flex: 1 }}>
                 <div className="section-card-large-name">
                   {replaceMexicoTerms(sec.name, country)}
