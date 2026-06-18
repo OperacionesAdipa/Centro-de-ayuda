@@ -12,18 +12,13 @@ export function Navbar() {
     Chile: '🇨🇱',
     México: '🇲🇽',
     Colombia: '🇨🇴',
-    Argentina: '🇦🇷',
   }
 
   return (
     <>
       <nav className="navbar">
         <Link href="/" className="navbar-logo">
-          <img
-            src="https://adipa.cl/content/uploads/2022/10/logo-adipa.svg"
-            alt="ADIPA"
-            style={{ height: 32, width: 'auto' }}
-          />
+          <img src="https://adipa.cl/content/uploads/2022/10/logo-adipa.svg" alt="ADIPA" style={{ height: 32, width: 'auto' }} />
           <span className="navbar-subtitle">Centro de ayuda</span>
         </Link>
         <div className="navbar-right">
