@@ -28,7 +28,7 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
   return (
     <>
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <button onClick={() => router.back()} className="back-btn-top">← Volver atras</button>
+        <button onClick={() => router.back()} className="back-btn-top">← Volver atrás</button>
         <Link href="/" className="back-btn-top back-btn-solid">← Volver al inicio</Link>
       </div>
 
@@ -37,11 +37,11 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
       <h1>{title}</h1>
 
       <div className="article-meta">
-        <span>Actualizado {updatedDate}</span>
+        <span>🕐 Actualizado {updatedDate}</span>
         {(article.view_count ?? 0) > 0 && (
-          <span>{article.view_count.toLocaleString()} vistas</span>
+          <span>👁 {article.view_count.toLocaleString()} vistas</span>
         )}
-        {categoryName && <span>{replaceMexicoTerms(categoryName, country)}</span>}
+        {categoryName && <span>🏷 {replaceMexicoTerms(categoryName, country)}</span>}
       </div>
 
       <div className="article-body" dangerouslySetInnerHTML={{ __html: body }} />
@@ -49,15 +49,21 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
       <div className="article-divider" />
 
       <div className="helpful-box">
-        <span>¿Te fue util este articulo?</span>
+        <span>¿Te fue útil este artículo?</span>
         <div className="helpful-btns">
           {helpful === null ? (
             <>
-              <button className="helpful-btn" onClick={() => setHelpful(true)}>Si, me ayudo</button>
-              <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="helpful-btn">Necesito mas ayuda</a>
+              <button className="helpful-btn" onClick={() => setHelpful(true)}>
+                👍 Sí, me ayudó
+              </button>
+              <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="helpful-btn">
+                Necesito más ayuda
+              </a>
             </>
           ) : (
-            <span style={{ fontSize: 14, color: '#704EFD', fontWeight: 500 }}>Gracias por tu feedback!</span>
+            <span style={{ fontSize: 14, color: '#704EFD', fontWeight: 500 }}>
+              ¡Gracias por tu feedback! 🎉
+            </span>
           )}
         </div>
       </div>
@@ -66,7 +72,7 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
         <div style={{ marginTop: 32 }}>
           <div className="section-title" style={{ marginBottom: 12 }}>
             <span className="section-title-icon">✨</span>
-            Articulos relacionados
+            Artículos relacionados
           </div>
           <div className="article-list">
             {relatedArticles.map((rel) => (
