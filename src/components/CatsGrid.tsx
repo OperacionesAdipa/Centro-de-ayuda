@@ -3,6 +3,16 @@
 import Link from 'next/link'
 import { useCountry } from '@/lib/useCountry'
 import { ZCategory, ZSection, ZArticle, slugify, extractTagsFromBody, CATEGORY_ICONS } from '@/lib/zendesk'
+import { replaceMexicoTerms } from '@/lib/countryUtils'
+
+const UPDATED_ICONS: Record<string, string> = {
+  'Admisión y Matrícula': '📋',
+  'Comunidad y Beneficios': '🎁',
+  'Sitio Web': '🌐',
+  'Aula Virtual': '💻',
+  'Programas y Cursos': '🎓',
+  'Preguntas frecuentes': '❓',
+}
 
 interface Props {
   categories: ZCategory[]
@@ -26,16 +36,20 @@ export function CatsGrid({ categories, allSections, catArticleMap }: Props) {
   })
 
   return (
-    <div className="cats-grid" style={{ marginBottom: 40 }}>
+    <div className="cats-grid-large" style={{ marginBottom: 40 }}>
       {visibleCats.map((cat, i) => (
         <Link
           key={cat.id}
           href={`/categoria/${cat.id}-${slugify(cat.name)}`}
-          className={`cat-card ${i % 2 === 0 ? 'purple' : 'blue'}`}
+          className={`cat-card-large ${i % 2 === 0 ? 'purple' : 'blue'}`}
         >
-          <span className="cat-card-icon">{CATEGORY_ICONS[cat.name] ?? '📁'}</span>
-          <div className="cat-card-name">{cat.name}</div>
-          <div className="cat-card-meta">
+          <span className="cat-card-large-icon">
+            {UPDATED_ICONS[cat.name] ?? CATEGORY_ICONS[cat.name] ?? '📁'}
+          </span>
+          <div className="cat-card-large-name">
+            {replaceMexicoTerms(cat.name, country)}
+          </div>
+          <div className="cat-card-large-meta">
             {allSections.filter((s) => s.category_id === cat.id).length} secciones
           </div>
           <span className="cat-card-arrow">→</span>
