@@ -16,7 +16,9 @@ export function ContactSection() {
         <div className="contact-icon">&#128172;</div>
         <h3 className="contact-title">¿Necesitas más ayuda?</h3>
         <p className="contact-sub">¿No encontraste lo que buscabas? Contáctanos directamente.</p>
-        <p className="contact-hours">{hours}</p>
+        <p className="contact-hours">
+          <span>🕐</span> <strong>Horarios de atención:</strong> {hours}
+        </p>
         <div className="contact-btns">
           <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="contact-btn-whatsapp">WhatsApp</a>
           <a href={`mailto:${email}`} className="contact-btn-email">{email}</a>
