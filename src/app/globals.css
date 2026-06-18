@@ -625,3 +625,23 @@ details[open] .faq-chevron { transform: rotate(180deg); }
   padding: 12px 16px;
   margin-top: -4px;
 }
+.section-accordion-item { border-radius: var(--radius); overflow: hidden; }
+
+.section-card-large {
+  border-radius: var(--radius) !important;
+  transition: all 0.15s;
+}
+
+.section-card-large.active {
+  border-radius: var(--radius) var(--radius) 0 0 !important;
+  border-bottom: none !important;
+}
+
+.section-accordion-articles {
+  border-radius: 0 0 var(--radius) var(--radius);
+  border: 2px solid var(--purple);
+  border-top: none;
+  background: #fff;
+  padding: 12px 16px;
+  margin-top: 0;
+}
