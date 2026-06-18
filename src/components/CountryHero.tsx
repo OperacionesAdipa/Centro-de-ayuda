@@ -28,12 +28,8 @@ export function CountryHero({ totalCategories, totalArticles }: Props) {
           <div className="hero-stat-l">artículos</div>
         </div>
         <div>
-          <div className="hero-stat-n">{totalCategories}</div>
-          <div className="hero-stat-l">categorías</div>
-        </div>
-        <div>
           <div className="hero-stat-n">{country}</div>
-          <div className="hero-stat-l">tu región</div>
+          <div className="hero-stat-l">tu país</div>
         </div>
       </div>
     </section>
