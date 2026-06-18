@@ -10,6 +10,7 @@ import { FaqSection } from '@/components/FaqSection'
 import { CountryHero } from '@/components/CountryHero'
 import { ContactSection } from '@/components/ContactSection'
 import { CatsGrid } from '@/components/CatsGrid'
+import { VideoTutorials } from '@/components/VideoTutorials'
 
 export const revalidate = 300
 
@@ -26,7 +27,6 @@ export default async function HomePage() {
 
   const featured = allArticles.filter((a) => a.promoted)
   const display = featured.length > 0 ? featured : topViewed
-
   const sectionMap = Object.fromEntries(allSections.map((s) => [s.id, s]))
 
   const catArticleMap: Record<number, ZArticle[]> = {}
@@ -56,6 +56,12 @@ export default async function HomePage() {
           allSections={allSections}
           catArticleMap={catArticleMap}
         />
+
+        <div className="section-divider" />
+
+        <VideoTutorials articles={allArticles} />
+
+        <div className="section-divider" />
 
         <div className="section-header">
           <h2 className="section-title">
