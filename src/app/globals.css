@@ -803,3 +803,13 @@ details[open] .faq-chevron { transform: rotate(180deg); }
 }
 .video-card-thumb { position: relative; }
 .video-play-btn { position: absolute; z-index: 1; }
+.see-all-btn {
+  font-size: 13px;
+  color: var(--purple);
+  text-decoration: none;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  border: 0.5px solid rgba(112,78,253,0.25);
+  transition: all 0.15s;
+}
+.see-all-btn:hover { background: var(--lp); text-decoration: none; }
