@@ -76,7 +76,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
         </div>
 
         <div className="main">
-          {sections.length > 4 ? (
+          {sections.length > 0 ? (
             <SectionCardsGrid
               sections={sections}
               articlesPerSection={articlesPerSection}
