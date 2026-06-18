@@ -31,6 +31,14 @@ export function CountryHero({ totalCategories, totalArticles }: Props) {
           <div className="hero-stat-n">{country}</div>
           <div className="hero-stat-l">tu país</div>
         </div>
+        <div>
+          <div className="hero-stat-n">+30</div>
+          <div className="hero-stat-l">videotutoriales</div>
+        </div>
+        <div>
+          <div className="hero-stat-n">98%</div>
+          <div className="hero-stat-l">satisfacción</div>
+        </div>
       </div>
     </section>
   )
