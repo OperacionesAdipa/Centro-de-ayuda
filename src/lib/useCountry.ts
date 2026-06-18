@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { AVAILABLE_COUNTRIES } from './countryUtils'
 
-const COUNTRIES = ['Chile', 'México', 'Colombia', 'Argentina']
 const STORAGE_KEY = 'adipa_country'
 
 const COUNTRY_MAP: Record<string, string> = {
@@ -25,7 +25,7 @@ export function useCountry() {
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved && COUNTRIES.includes(saved)) {
+    if (saved && AVAILABLE_COUNTRIES.includes(saved)) {
       setCountryState(saved)
       setDetected(true)
       return
@@ -35,7 +35,8 @@ export function useCountry() {
       .then((r) => r.json())
       .then((data) => {
         const mapped = COUNTRY_MAP[data.country] ?? 'Chile'
-        setCountryState(mapped)
+        const final = AVAILABLE_COUNTRIES.includes(mapped) ? mapped : 'Chile'
+        setCountryState(final)
         setDetected(true)
       })
       .catch(() => {
@@ -56,5 +57,5 @@ export function useCountry() {
     notifyListeners(c)
   }, [])
 
-  return { country, setCountry, detected, COUNTRIES }
+  return { country, setCountry, detected, COUNTRIES: AVAILABLE_COUNTRIES }
 }
