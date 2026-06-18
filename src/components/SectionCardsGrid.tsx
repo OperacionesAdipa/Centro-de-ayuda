@@ -41,66 +41,75 @@ export function SectionCardsGrid({ sections, articlesPerSection }: Props) {
     (sec, index, self) => self.findIndex((s) => s.id === sec.id) === index
   )
 
-  const activeArts = activeSection
-    ? (articlesPerSection
-        .find((a) => a.section.id === activeSection)
-        ?.arts.filter((art) => {
+  return (
+    <div className="section-accordion">
+      {uniqueSections.map((sec, i) => {
+        const entry = articlesPerSection.find((a) => a.section.id === sec.id)
+        const arts = entry?.arts.filter((art) => {
           const { countries } = extractTagsFromBody(art.body ?? '')
           if (countries.length === 0) return true
           if (countries.includes('Todos')) return true
           return countries.includes(country)
-        }) ?? [])
-    : []
+        }) ?? []
+        const isActive = activeSection === sec.id
+        const count = arts.length
 
-  return (
-    <div>
-      <div className="section-cards-grid">
-        {uniqueSections.map((sec, i) => {
-          const count = articlesPerSection.find((a) => a.section.id === sec.id)?.arts.length ?? 0
-          const isActive = activeSection === sec.id
-          return (
+        return (
+          <div key={sec.id} className="section-accordion-item">
             <button
-              key={sec.id}
-              className={`section-card ${isActive ? 'active' : i % 2 === 0 ? 'purple' : 'blue'}`}
+              className={`section-card-large ${isActive ? 'active' : i % 2 === 0 ? 'purple' : 'blue'}`}
               onClick={() => setActiveSection(isActive ? null : sec.id)}
+              style={{ width: '100%', border: 'none', cursor: 'pointer', textAlign: 'left' }}
             >
-              <span className="section-card-icon">{SECTION_ICONS[sec.name] ?? '📄'}</span>
-              <div className="section-card-name">{replaceMexicoTerms(sec.name, country)}</div>
-              <div className="section-card-meta">{count} artículos</div>
-            </button>
-          )
-        })}
-      </div>
-
-      {activeSection && activeArts.length > 0 && (
-        <div className="section-articles-panel">
-          <div className="section-group-name">
-            {replaceMexicoTerms(uniqueSections.find((s) => s.id === activeSection)?.name ?? '', country)}
-          </div>
-          <div className="article-list">
-            {activeArts.map((art) => (
-              <Link key={art.id} href={`/articulo/${art.id}-${slugify(art.title)}`} className="article-list-item">
-                <div className="article-list-icon">📄</div>
-                <div style={{ flex: 1 }}>
-                  <div className="article-list-title">{replaceMexicoTerms(art.title, country)}</div>
-                  {(art.view_count ?? 0) > 0 && (
-                    <div className="article-list-meta">{art.view_count.toLocaleString()} vistas</div>
-                  )}
+              <span className="section-card-large-icon">
+                {SECTION_ICONS[sec.name] ?? '📄'}
+              </span>
+              <div style={{ flex: 1 }}>
+                <div className="section-card-large-name">
+                  {replaceMexicoTerms(sec.name, country)}
                 </div>
-                <span className="article-list-arrow">›</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
+                <div className="section-card-large-meta">{count} artículos</div>
+              </div>
+              <span style={{ fontSize: 18, color: 'var(--purple)', marginLeft: 8 }}>
+                {isActive ? '▾' : '›'}
+              </span>
+            </button>
 
-      {activeSection && activeArts.length === 0 && (
-        <div className="section-articles-panel">
-          <p style={{ fontSize: 13, color: '#aaa', padding: '10px 0' }}>
-            No hay artículos disponibles para tu país en esta sección.
-          </p>
-        </div>
-      )}
+            {isActive && (
+              <div className="section-accordion-articles">
+                {arts.length > 0 ? (
+                  <div className="article-list">
+                    {arts.map((art) => (
+                      <Link
+                        key={art.id}
+                        href={`/articulo/${art.id}-${slugify(art.title)}`}
+                        className="article-list-item"
+                      >
+                        <div className="article-list-icon">📄</div>
+                        <div style={{ flex: 1 }}>
+                          <div className="article-list-title">
+                            {replaceMexicoTerms(art.title, country)}
+                          </div>
+                          {(art.view_count ?? 0) > 0 && (
+                            <div className="article-list-meta">
+                              {art.view_count.toLocaleString()} vistas
+                            </div>
+                          )}
+                        </div>
+                        <span className="article-list-arrow">›</span>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ fontSize: 13, color: '#aaa', padding: '10px 16px' }}>
+                    No hay artículos disponibles para tu país en esta sección.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
