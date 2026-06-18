@@ -518,3 +518,6 @@ details[open] .faq-chevron { transform: rotate(180deg); }
 @media (max-width: 768px) {
   .section-cards-grid { grid-template-columns: repeat(2, 1fr); }
 }
+.section-card { cursor: pointer; border: none; text-align: left; }
+.section-card.active { border: 2px solid var(--purple) !important; background: var(--lp) !important; }
+.section-articles-panel { margin-top: 24px; background: #fff; border-radius: var(--radius); padding: 20px; border: 0.5px solid var(--border); }
