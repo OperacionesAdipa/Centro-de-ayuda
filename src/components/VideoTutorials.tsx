@@ -9,7 +9,6 @@ interface VideoItem {
   title: string
   articleSlug: string
   embedUrl: string
-  thumbnail: string
 }
 
 function extractVideos(articles: ZArticle[], country: string): VideoItem[] {
@@ -43,7 +42,6 @@ function extractVideos(articles: ZArticle[], country: string): VideoItem[] {
           title: art.title,
           articleSlug: `${art.id}-${slugify(art.title)}`,
           embedUrl,
-          thumbnail: '',
         })
       }
     }
@@ -83,33 +81,19 @@ export function VideoTutorials({ articles }: Props) {
             Videotutoriales
           </h2>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={prev}
-              disabled={current === 0}
-              className="carousel-btn"
-              aria-label="Anterior"
-            >
-              ‹
-            </button>
-            <button
-              onClick={next}
-              disabled={current >= maxIndex}
-              className="carousel-btn"
-              aria-label="Siguiente"
-            >
-              ›
-            </button>
+            <button onClick={prev} disabled={current === 0} className="carousel-btn" aria-label="Anterior">‹</button>
+            <button onClick={next} disabled={current >= maxIndex} className="carousel-btn" aria-label="Siguiente">›</button>
           </div>
         </div>
 
         <div className="video-carousel">
           {visible.map((v, i) => (
-            <div
-              key={`${v.articleSlug}-${i}`}
-              className="video-card"
-              onClick={() => setActiveVideo(v)}
-            >
+            <div key={`${v.articleSlug}-${i}`} className="video-card" onClick={() => setActiveVideo(v)}>
               <div className="video-card-thumb">
+                <div className="video-thumb-bg">
+                  <img src="https://adipa.cl/content/uploads/2022/10/logo-adipa.svg" alt="ADIPA" className="video-thumb-logo" />
+                  <div className="video-thumb-text">¡Dale play al tutorial!</div>
+                </div>
                 <div className="video-play-btn">▶</div>
               </div>
               <div className="video-card-info">
@@ -123,12 +107,7 @@ export function VideoTutorials({ articles }: Props) {
         {total > perPage && (
           <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 12 }}>
             {Array.from({ length: maxIndex + 1 }).map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrent(i)}
-                className={`carousel-dot ${current === i ? 'active' : ''}`}
-                aria-label={`Ir a página ${i + 1}`}
-              />
+              <button key={i} onClick={() => setCurrent(i)} className={`carousel-dot ${current === i ? 'active' : ''}`} aria-label={`Ir a página ${i + 1}`} />
             ))}
           </div>
         )}
@@ -140,21 +119,10 @@ export function VideoTutorials({ articles }: Props) {
             <button className="video-modal-close" onClick={() => setActiveVideo(null)}>✕</button>
             <h3 className="video-modal-title">{activeVideo.title}</h3>
             <div className="video-modal-embed">
-              <iframe
-                src={activeVideo.embedUrl}
-                width="100%"
-                height="100%"
-                frameBorder="0"
-                allow="autoplay; fullscreen"
-                allowFullScreen
-              />
+              <iframe src={activeVideo.embedUrl} width="100%" height="100%" frameBorder="0" allow="autoplay; fullscreen" allowFullScreen />
             </div>
             <div style={{ marginTop: 14, textAlign: 'center' }}>
-              <Link
-                href={`/articulo/${activeVideo.articleSlug}`}
-                className="back-btn-top back-btn-solid"
-                onClick={() => setActiveVideo(null)}
-              >
+              <Link href={`/articulo/${activeVideo.articleSlug}`} className="back-btn-top back-btn-solid" onClick={() => setActiveVideo(null)}>
                 Ver artículo completo →
               </Link>
             </div>
