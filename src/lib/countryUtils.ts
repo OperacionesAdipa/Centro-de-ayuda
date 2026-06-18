@@ -19,6 +19,15 @@ export const COUNTRY_WHATSAPP: Record<string, string> = {
   Argentina: 'https://api.whatsapp.com/send?phone=+56957253424&text=Hola,%20me%20quiero%20contactar%20desde%20ADIPA',
 }
 
+export const COUNTRY_HOURS: Record<string, string> = {
+  Chile: 'Lun-Jue 09:00-18:00 · Vie 09:00-16:00 · Sáb 09:00-14:00',
+  México: 'Lun-Jue 06:00-15:00 · Vie 06:00-13:00 · Sáb 06:00-11:00',
+  Colombia: 'Lun-Jue 07:00-16:00 · Vie 07:00-14:00 · Sáb 07:00-12:00',
+  Argentina: 'Lun-Jue 09:00-18:00 · Vie 09:00-16:00 · Sáb 09:00-14:00',
+}
+
+export const AVAILABLE_COUNTRIES = ['Chile', 'México', 'Colombia']
+
 export function replaceAdipaLinks(html: string, country: string): string {
   const tld = COUNTRY_DOMAIN[country] ?? 'cl'
   return html.replace(
@@ -29,4 +38,13 @@ export function replaceAdipaLinks(html: string, country: string): string {
       return `${prefix}${wwwPart}adipa.${tld}`
     }
   )
+}
+
+export function replaceMexicoTerms(text: string, country: string): string {
+  if (country !== 'México') return text
+  return text
+    .replace(/certificaciones/gi, 'constancias')
+    .replace(/certificación/gi, 'constancia')
+    .replace(/certificados/gi, 'constancias')
+    .replace(/certificado/gi, 'constancia')
 }
