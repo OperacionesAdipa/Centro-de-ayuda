@@ -449,3 +449,44 @@ details[open] .faq-chevron { transform: rotate(180deg); }
   .cats-grid-large { grid-template-columns: repeat(2, 1fr); }
   .section-tabs { overflow-x: auto; flex-wrap: nowrap; }
 }
+.sidebar-section {
+  margin-left: 8px;
+}
+.sidebar-section-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+  text-align: left;
+  gap: 8px;
+}
+.sidebar-section-btn:hover { background: var(--bg); color: var(--purple); }
+.sidebar-section-btn.active { color: var(--purple); font-weight: 500; }
+.sidebar-article-link {
+  display: block;
+  padding: 5px 10px 5px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: none;
+  transition: all 0.15s;
+  line-height: 1.4;
+  border-left: 2px solid transparent;
+  margin-left: 8px;
+}
+.sidebar-article-link:hover { color: var(--purple); background: var(--bg); text-decoration: none; }
+.sidebar-article-link.active { color: var(--purple); border-left-color: var(--purple); background: var(--lp); font-weight: 500; }
+
+.article-body * { text-align: justify !important; }
+.article-body img,
+.article-body figure,
+.article-body iframe,
+.article-body video { text-align: center !important; display: block; margin-left: auto; margin-right: auto; }
