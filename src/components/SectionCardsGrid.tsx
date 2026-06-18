@@ -41,9 +41,20 @@ export function SectionCardsGrid({ sections, articlesPerSection }: Props) {
     (sec, index, self) => self.findIndex((s) => s.id === sec.id) === index
   )
 
+  const visibleSections = uniqueSections.filter((sec) => {
+    const arts = articlesPerSection.find((a) => a.section.id === sec.id)?.arts ?? []
+    const filtered = arts.filter((art) => {
+      const { countries } = extractTagsFromBody(art.body ?? '')
+      if (countries.length === 0) return true
+      if (countries.includes('Todos')) return true
+      return countries.includes(country)
+    })
+    return filtered.length > 0
+  })
+
   return (
     <div className="section-accordion">
-      {uniqueSections.map((sec, i) => {
+      {visibleSections.map((sec, i) => {
         const entry = articlesPerSection.find((a) => a.section.id === sec.id)
         const arts = entry?.arts.filter((art) => {
           const { countries } = extractTagsFromBody(art.body ?? '')
@@ -77,34 +88,28 @@ export function SectionCardsGrid({ sections, articlesPerSection }: Props) {
 
             {isActive && (
               <div className="section-accordion-articles">
-                {arts.length > 0 ? (
-                  <div className="article-list">
-                    {arts.map((art) => (
-                      <Link
-                        key={art.id}
-                        href={`/articulo/${art.id}-${slugify(art.title)}`}
-                        className="article-list-item"
-                      >
-                        <div className="article-list-icon">📄</div>
-                        <div style={{ flex: 1 }}>
-                          <div className="article-list-title">
-                            {replaceMexicoTerms(art.title, country)}
-                          </div>
-                          {(art.view_count ?? 0) > 0 && (
-                            <div className="article-list-meta">
-                              {art.view_count.toLocaleString()} vistas
-                            </div>
-                          )}
+                <div className="article-list">
+                  {arts.map((art) => (
+                    <Link
+                      key={art.id}
+                      href={`/articulo/${art.id}-${slugify(art.title)}`}
+                      className="article-list-item"
+                    >
+                      <div className="article-list-icon">📄</div>
+                      <div style={{ flex: 1 }}>
+                        <div className="article-list-title">
+                          {replaceMexicoTerms(art.title, country)}
                         </div>
-                        <span className="article-list-arrow">›</span>
-                      </Link>
-                    ))}
-                  </div>
-                ) : (
-                  <p style={{ fontSize: 13, color: '#aaa', padding: '10px 16px' }}>
-                    No hay artículos disponibles para tu país en esta sección.
-                  </p>
-                )}
+                        {(art.view_count ?? 0) > 0 && (
+                          <div className="article-list-meta">
+                            {art.view_count.toLocaleString()} vistas
+                          </div>
+                        )}
+                      </div>
+                      <span className="article-list-arrow">›</span>
+                    </Link>
+                  ))}
+                </div>
               </div>
             )}
           </div>
