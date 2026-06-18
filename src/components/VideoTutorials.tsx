@@ -103,3 +103,64 @@ export function VideoTutorials({ articles }: Props) {
         </div>
 
         <div className="video-carousel">
+          {visible.map((v, i) => (
+            <div
+              key={`${v.articleSlug}-${i}`}
+              className="video-card"
+              onClick={() => setActiveVideo(v)}
+            >
+              <div className="video-card-thumb">
+                <div className="video-play-btn">▶</div>
+              </div>
+              <div className="video-card-info">
+                <div className="video-card-title">{v.title}</div>
+                <div className="video-card-sub">Ver videotutorial</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {total > perPage && (
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 12 }}>
+            {Array.from({ length: maxIndex + 1 }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrent(i)}
+                className={`carousel-dot ${current === i ? 'active' : ''}`}
+                aria-label={`Ir a página ${i + 1}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {activeVideo && (
+        <div className="video-modal-overlay" onClick={() => setActiveVideo(null)}>
+          <div className="video-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="video-modal-close" onClick={() => setActiveVideo(null)}>✕</button>
+            <h3 className="video-modal-title">{activeVideo.title}</h3>
+            <div className="video-modal-embed">
+              <iframe
+                src={activeVideo.embedUrl}
+                width="100%"
+                height="100%"
+                frameBorder="0"
+                allow="autoplay; fullscreen"
+                allowFullScreen
+              />
+            </div>
+            <div style={{ marginTop: 14, textAlign: 'center' }}>
+              <Link
+                href={`/articulo/${activeVideo.articleSlug}`}
+                className="back-btn-top back-btn-solid"
+                onClick={() => setActiveVideo(null)}
+              >
+                Ver artículo completo →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
