@@ -53,17 +53,19 @@ export function CategoryArticles({ articlesPerSection }: Props) {
 
   return (
     <>
-      <div className="section-tabs">
-        {visibleSections.map(({ section }) => (
-          <button
-            key={section.id}
-            className={`section-tab ${activeSection === section.id ? 'active' : ''}`}
-            onClick={() => scrollToSection(section.id)}
-          >
-            {replaceMexicoTerms(section.name, country)}
-          </button>
-        ))}
-      </div>
+      {visibleSections.length > 1 && (
+        <div className="section-tabs">
+          {visibleSections.map(({ section }) => (
+            <button
+              key={section.id}
+              className={`section-tab ${activeSection === section.id ? 'active' : ''}`}
+              onClick={() => scrollToSection(section.id)}
+            >
+              {replaceMexicoTerms(section.name, country)}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="sections-content">
         {visibleSections.map(({ section, arts }) => (
@@ -95,7 +97,7 @@ export function CategoryArticles({ articlesPerSection }: Props) {
                     </div>
                     {(art.view_count ?? 0) > 0 && (
                       <div className="article-list-meta">
-                        👁 {art.view_count.toLocaleString()} vistas
+                        {art.view_count.toLocaleString()} vistas
                       </div>
                     )}
                   </div>
