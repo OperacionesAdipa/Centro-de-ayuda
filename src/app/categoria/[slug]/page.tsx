@@ -1,61 +1,70 @@
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import {
-  getCategories,
-  getSections,
-  getArticles,
-  slugify,
-  CATEGORY_ICONS,
-} from '@/lib/zendesk'
-import { CategoryArticles } from '@/components/CategoryArticles'
+import { getArticle, getArticles, getSections, getCategories, slugify } from '@/lib/zendesk'
+import { ArticleClient } from '@/components/ArticleClient'
+import { ArticleSidebar } from '@/components/ArticleSidebar'
+import Link from 'next/link'
 
 export const revalidate = 300
 
-export default async function CategoryPage({ params }: { params: { slug: string } }) {
-  const categoryId = parseInt(params.slug.split('-')[0])
-  if (isNaN(categoryId)) notFound()
+export default async function ArticlePage({ params }: { params: { slug: string } }) {
+  const articleId = parseInt(params.slug.split('-')[0])
+  if (isNaN(articleId)) notFound()
 
-  const [categories, sections] = await Promise.all([
+  const article = await getArticle(articleId).catch(() => null)
+  if (!article) notFound()
+
+  const [sections, categories] = await Promise.all([
+    getSections(),
     getCategories(),
-    getSections(categoryId),
   ])
 
-  const category = categories.find((c) => c.id === categoryId)
-  if (!category) notFound()
+  const section = sections.find((s) => s.id === article.section_id)
+  const category = section
+    ? categories.find((c) => c.id === section.category_id)
+    : null
 
-  const articlesPerSection = await Promise.all(
-    sections.map((s) => getArticles(s.id).then((arts) => ({ section: s, arts })))
-  )
+  const relatedArticles = section
+    ? (await getArticles(section.id))
+        .filter((a) => a.id !== article.id)
+        .slice(0, 3)
+    : []
 
-  const totalArticles = articlesPerSection.reduce((sum, { arts }) => sum + arts.length, 0)
+  const updatedDate = new Date(article.updated_at).toLocaleDateString('es-CL', {
+    year: 'numeric', month: 'long', day: 'numeric',
+  })
 
   return (
-    <>
-      <div className="cat-page-header">
-        <div style={{ marginBottom: 16 }}>
-          <Link href="/" className="back-btn-top back-btn-solid">
-            ← Volver al inicio
-          </Link>
-        </div>
-        <div className="cat-page-title-row">
-          <div className="cat-page-icon">
-            {CATEGORY_ICONS[category.name] ?? '📁'}
-          </div>
-          <div>
-            <div className="cat-page-name">{category.name}</div>
-            {category.description && (
-              <div className="cat-page-desc">{category.description}</div>
+    <div className="article-layout">
+      <ArticleSidebar
+        categories={categories}
+        sections={sections}
+        currentCategoryId={category?.id}
+        currentSectionId={section?.id}
+      />
+      <div className="article-main">
+        <div style={{ background: '#fff', borderBottom: '0.5px solid rgba(112,78,253,0.1)', padding: '12px 24px' }}>
+          <div style={{ fontSize: 12, color: '#6b7280' }}>
+            <Link href="/" style={{ color: '#704EFD' }}>Inicio</Link>
+            {category && (
+              <>
+                <span style={{ margin: '0 6px' }}>›</span>
+                <Link href={`/categoria/${category.id}-${slugify(category.name)}`} style={{ color: '#704EFD' }}>
+                  {category.name}
+                </Link>
+              </>
             )}
-            <div className="cat-page-desc">
-              {sections.length} secciones · {totalArticles} artículos
-            </div>
           </div>
         </div>
+        <div className="article-page">
+          <ArticleClient
+            article={article}
+            updatedDate={updatedDate}
+            categoryName={category?.name}
+            categorySlug={category ? `${category.id}-${slugify(category.name)}` : undefined}
+            relatedArticles={relatedArticles}
+          />
+        </div>
       </div>
-
-      <div className="main">
-        <CategoryArticles articlesPerSection={articlesPerSection} />
-      </div>
-    </>
+    </div>
   )
 }
