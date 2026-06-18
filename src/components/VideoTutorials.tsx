@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useCountry } from '@/lib/useCountry'
 import { ZArticle, slugify, extractTagsFromBody } from '@/lib/zendesk'
-import Link from 'next/link'
 
 interface VideoItem {
   title: string
@@ -80,7 +80,8 @@ export function VideoTutorials({ articles }: Props) {
             <span className="section-title-icon">🎬</span>
             Videotutoriales
           </h2>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Link href="/videotutoriales" className="see-all-btn">Ver todo →</Link>
             <button onClick={prev} disabled={current === 0} className="carousel-btn" aria-label="Anterior">‹</button>
             <button onClick={next} disabled={current >= maxIndex} className="carousel-btn" aria-label="Siguiente">›</button>
           </div>
