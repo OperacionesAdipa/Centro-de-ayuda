@@ -37,7 +37,7 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
       </div>
 
       <div className="article-country-badge">
-        📍 {country}
+        &#128205; {country}
       </div>
 
       <h1>{title}</h1>
