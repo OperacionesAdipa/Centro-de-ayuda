@@ -1314,3 +1314,66 @@ html.dark .help-compact-desc { color: #9ca3af !important; }
 @media (max-width: 640px) {
   .help-compact-card { flex-direction: column; align-items: flex-start; }
 }
+.font-size-btn {
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--radius-full);
+  border: 0.5px solid var(--border);
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--purple);
+  transition: all 0.15s;
+  letter-spacing: 0.02em;
+}
+.font-size-btn:hover { background: var(--lp); }
+
+.font-size-dropdown {
+  position: fixed;
+  top: 64px;
+  right: 80px;
+  background: #fff;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  z-index: 200;
+  box-shadow: 0 4px 24px rgba(112,78,253,0.08);
+  min-width: 180px;
+}
+.font-size-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+.font-size-options {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.font-size-option {
+  flex: 1;
+  padding: 8px 0;
+  border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border);
+  background: #fff;
+  cursor: pointer;
+  color: var(--purple);
+  font-weight: 600;
+  transition: all 0.15s;
+  text-align: center;
+}
+.font-size-option:hover { background: var(--lp); border-color: var(--purple); }
+.font-size-option.active { background: var(--purple); color: #fff; border-color: var(--purple); }
+.font-size-option.small { font-size: 12px; }
+.font-size-option.normal { font-size: 15px; }
+.font-size-option.large { font-size: 18px; }
+
+html.dark .font-size-btn { background: #1a1a2e; color: #a78bfa; border-color: rgba(112,78,253,0.3); }
+html.dark .font-size-dropdown { background: #1a1a2e; border-color: rgba(112,78,253,0.2); }
+html.dark .font-size-option { background: #1a1a2e; color: #a78bfa; border-color: rgba(112,78,253,0.2); }
+html.dark .font-size-option.active { background: #a78bfa; color: #fff; }
+html.dark .font-size-label { color: #9ca3af; }
