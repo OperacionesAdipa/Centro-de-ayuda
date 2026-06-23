@@ -1269,3 +1269,48 @@ html.dark .article-body h3 { color: #e8e8f0 !important; }
 html.dark .article-body a { color: #a78bfa !important; }
 html.dark .article-body [style*="background"] { background: transparent !important; }
 html.dark .article-body [style*="color"] { color: #c8c8d8 !important; }
+.help-section-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.help-compact-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  border: 0.5px solid var(--border);
+  transition: border-color 0.15s;
+}
+.help-compact-card:hover { border-color: var(--purple); }
+.help-compact-card.tutorial { border-left: 3px solid var(--purple); }
+.help-compact-card.video { border-left: 3px solid var(--blue); }
+.help-compact-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+.help-compact-icon { font-size: 22px; flex-shrink: 0; }
+.help-compact-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dark);
+  margin-bottom: 2px;
+}
+.help-compact-desc {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+html.dark .help-compact-card { background: #1a1a2e !important; border-color: rgba(112,78,253,0.2); }
+html.dark .help-compact-title { color: #e8e8f0 !important; }
+html.dark .help-compact-desc { color: #9ca3af !important; }
+
+@media (max-width: 640px) {
+  .help-compact-card { flex-direction: column; align-items: flex-start; }
+}
