@@ -1,12 +1,32 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useCountry } from '@/lib/useCountry'
 
 export function Navbar() {
   const { country, setCountry, COUNTRIES } = useCountry()
   const [open, setOpen] = useState(false)
+  const [darkMode, setDarkMode] = useState(false)
+
+  useEffect(() => {
+    const saved = localStorage.getItem('adipa_dark_mode')
+    if (saved === 'true') {
+      setDarkMode(true)
+      document.documentElement.classList.add('dark')
+    }
+  }, [])
+
+  function toggleDark() {
+    const next = !darkMode
+    setDarkMode(next)
+    localStorage.setItem('adipa_dark_mode', String(next))
+    if (next) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }
 
   const flags: Record<string, string> = {
     Chile: '🇨🇱',
@@ -22,6 +42,9 @@ export function Navbar() {
           <span className="navbar-subtitle">Centro de ayuda</span>
         </Link>
         <div className="navbar-right">
+          <button className="dark-mode-btn" onClick={toggleDark} title={darkMode ? 'Modo claro' : 'Modo oscuro'} aria-label={darkMode ? 'Activar modo claro' : 'Activar modo oscuro'}>
+            {darkMode ? '☀️' : '🌙'}
+          </button>
           <button className="country-btn" onClick={() => setOpen(!open)}>
             <span>{flags[country] ?? '🌎'}</span>
             <span>{country}</span>
