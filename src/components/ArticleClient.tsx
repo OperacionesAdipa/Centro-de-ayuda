@@ -54,8 +54,8 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
   return (
     <>
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <button onClick={() => router.back()} className="back-btn-top">← Volver atrás</button>
-        <Link href="/" className="back-btn-top back-btn-solid">← Volver al inicio</Link>
+        <button onClick={() => router.back()} className="back-btn-top"> Volver atrás</button>
+        <Link href="/" className="back-btn-top back-btn-solid"> Volver al inicio</Link>
       </div>
 
       <div className="article-country-badge">&#128205; {country}</div>
@@ -177,7 +177,7 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
       {categorySlug && (
         <div style={{ marginTop: 24, textAlign: 'center' }}>
           <Link href={`/categoria/${categorySlug}`} style={{ fontSize: 13, color: '#704EFD' }}>
-            ← Volver a {replaceMexicoTerms(categoryName ?? '', country)}
+             Volver a {replaceMexicoTerms(categoryName ?? '', country)}
           </Link>
         </div>
       )}
