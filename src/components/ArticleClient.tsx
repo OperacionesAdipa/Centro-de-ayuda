@@ -54,8 +54,8 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
   return (
     <>
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <button onClick={() => router.back()} className="back-btn-top"> Volver atrás</button>
-        <Link href="/" className="back-btn-top back-btn-solid"> Volver al inicio</Link>
+        <button onClick={() => router.back()} className="back-btn-top">Volver atras</button>
+        <Link href="/" className="back-btn-top back-btn-solid">Volver al inicio</Link>
       </div>
 
       <div className="article-country-badge">&#128205; {country}</div>
@@ -63,11 +63,11 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
       <h1>{title}</h1>
 
       <div className="article-meta">
-        <span>🕐 Actualizado {updatedDate}</span>
+        <span>Actualizado {updatedDate}</span>
         {(article.view_count ?? 0) > 0 && (
-          <span>👁 {article.view_count.toLocaleString()} vistas</span>
+          <span>{article.view_count.toLocaleString()} vistas</span>
         )}
-        {categoryName && <span>🏷 {replaceMexicoTerms(categoryName, country)}</span>}
+        {categoryName && <span>{replaceMexicoTerms(categoryName, country)}</span>}
       </div>
 
       <div className="article-body" dangerouslySetInnerHTML={{ __html: body }} />
@@ -75,84 +75,38 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
       <div className="article-divider" />
 
       <div className="helpful-box">
-        <span>¿Te fue útil este artículo?</span>
+        <span>Te fue util este articulo?</span>
         <div className="helpful-btns">
           {helpful === null ? (
             <>
-              <button className="helpful-btn" onClick={() => setHelpful(true)}>
-                👍 Sí, me ayudó
-              </button>
-              <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="helpful-btn">
-                Necesito más ayuda
-              </a>
+              <button className="helpful-btn" onClick={() => setHelpful(true)}>Si, me ayudo</button>
+              <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="helpful-btn">Necesito mas ayuda</a>
             </>
           ) : (
-            <span style={{ fontSize: 14, color: '#704EFD', fontWeight: 500 }}>
-              ¡Gracias por tu feedback! 🎉
-            </span>
+            <span style={{ fontSize: 14, color: '#704EFD', fontWeight: 500 }}>Gracias por tu feedback!</span>
           )}
         </div>
       </div>
 
       <div className="extra-help-section">
-        <div className="extra-help-title">¿Necesitas más ayuda?</div>
+        <div className="extra-help-title">Necesitas mas ayuda?</div>
         <div className="extra-help-btns">
-          <button
-            className="extra-help-btn"
-            onClick={() => setShowTutorialForm(!showTutorialForm)}
-          >
-            🎬 Solicitar un tutorial
-          </button>
-          
-            href={CALENDAR_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="extra-help-btn"
-          >
-            📅 Agendar videollamada
-          </a>
+          <button className="extra-help-btn" onClick={() => setShowTutorialForm(!showTutorialForm)}>Solicitar un tutorial</button>
+          <a href={CALENDAR_LINK} target="_blank" rel="noopener noreferrer" className="extra-help-btn">Agendar videollamada</a>
         </div>
 
         {showTutorialForm && !tutorialSent && (
           <div className="tutorial-form">
-            <p className="tutorial-form-desc">
-              Cuéntanos qué tutorial necesitas y nos pondremos en contacto contigo.
-            </p>
-            <input
-              className="tutorial-input"
-              type="text"
-              placeholder="Tu nombre"
-              value={tutorialName}
-              onChange={(e) => setTutorialName(e.target.value)}
-            />
-            <input
-              className="tutorial-input"
-              type="email"
-              placeholder="Tu correo"
-              value={tutorialEmail}
-              onChange={(e) => setTutorialEmail(e.target.value)}
-            />
-            <textarea
-              className="tutorial-input"
-              placeholder="¿Qué tutorial necesitas? Descríbelo brevemente..."
-              value={tutorialDesc}
-              onChange={(e) => setTutorialDesc(e.target.value)}
-              rows={3}
-            />
-            <button
-              className="back-btn-top back-btn-solid"
-              onClick={sendTutorialRequest}
-              style={{ marginTop: 8 }}
-            >
-              Enviar solicitud
-            </button>
+            <p className="tutorial-form-desc">Cuentanos que tutorial necesitas y nos pondremos en contacto contigo.</p>
+            <input className="tutorial-input" type="text" placeholder="Tu nombre" value={tutorialName} onChange={(e) => setTutorialName(e.target.value)} />
+            <input className="tutorial-input" type="email" placeholder="Tu correo" value={tutorialEmail} onChange={(e) => setTutorialEmail(e.target.value)} />
+            <textarea className="tutorial-input" placeholder="Que tutorial necesitas? Describelo brevemente..." value={tutorialDesc} onChange={(e) => setTutorialDesc(e.target.value)} rows={3} />
+            <button className="back-btn-top back-btn-solid" onClick={sendTutorialRequest} style={{ marginTop: 8 }}>Enviar solicitud</button>
           </div>
         )}
 
         {tutorialSent && (
-          <div style={{ marginTop: 12, fontSize: 14, color: '#704EFD', fontWeight: 500 }}>
-            ¡Solicitud enviada! Te contactaremos pronto. 🎉
-          </div>
+          <div style={{ marginTop: 12, fontSize: 14, color: '#704EFD', fontWeight: 500 }}>Solicitud enviada! Te contactaremos pronto.</div>
         )}
       </div>
 
@@ -160,7 +114,7 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
         <div style={{ marginTop: 32 }}>
           <div className="section-title" style={{ marginBottom: 12 }}>
             <span className="section-title-icon">✨</span>
-            Artículos relacionados
+            Articulos relacionados
           </div>
           <div className="article-list">
             {relatedArticles.map((rel) => (
@@ -177,7 +131,7 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
       {categorySlug && (
         <div style={{ marginTop: 24, textAlign: 'center' }}>
           <Link href={`/categoria/${categorySlug}`} style={{ fontSize: 13, color: '#704EFD' }}>
-             Volver a {replaceMexicoTerms(categoryName ?? '', country)}
+            Volver a {replaceMexicoTerms(categoryName ?? '', country)}
           </Link>
         </div>
       )}
