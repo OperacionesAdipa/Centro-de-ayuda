@@ -5,10 +5,10 @@ import Link from 'next/link'
 import { slugify } from '@/lib/zendesk'
 
 const POPULAR_SEARCHES = [
-  'Cómo iniciar sesión',
-  'Recuperar contraseña',
+  'Iniciar sesión',
+  'Contraseña',
   'Certificados',
-  'Medios de pago',
+  'Pagos',
   'Inscripción',
   'Aula virtual',
 ]
@@ -57,15 +57,12 @@ export function SearchBar() {
     setListening(true)
     recognition.start()
     recognition.onresult = (e: any) => {
-      const transcript = e.results[0][0].transcript
-      setQuery(transcript)
+      setQuery(e.results[0][0].transcript)
       setListening(false)
     }
     recognition.onerror = () => setListening(false)
     recognition.onend = () => setListening(false)
   }
-
-  const showSuggestions = query.length === 0
 
   return (
     <div className="search-wrap" ref={wrapRef}>
@@ -78,53 +75,37 @@ export function SearchBar() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <button
-          className={`voice-btn ${listening ? 'active' : ''}`}
-          onClick={startVoice}
-          title="Buscar por voz"
-          type="button"
-        >
-          🎤
-        </button>
+        <button className={`voice-btn ${listening ? 'active' : ''}`} onClick={startVoice} title="Buscar por voz" type="button">🎤</button>
         <button className="search-btn">Buscar</button>
       </div>
 
-      <div className="search-filters">
-        {(['todos', 'articulos', 'videos', 'faq'] as FilterType[]).map((f) => (
-          <button
-            key={f}
-            className={`search-filter-btn ${filter === f ? 'active' : ''}`}
-            onClick={() => setFilter(f)}
-          >
-            {f === 'todos' ? 'Todos' : f === 'articulos' ? 'Artículos' : f === 'videos' ? 'Videos' : 'FAQ'}
-          </button>
-        ))}
-      </div>
-
-      {showSuggestions && (
-        <div className="search-suggestions">
-          <div className="search-suggestions-label">🔥 Búsquedas populares</div>
-          <div className="search-suggestions-list">
-            {POPULAR_SEARCHES.map((s) => (
-              <button
-                key={s}
-                className="search-suggestion-tag"
-                onClick={() => setQuery(s)}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+      <div className="search-meta-row">
+        <div className="search-filter-row">
+          <span className="search-filter-label">Filtrar:</span>
+          {(['todos', 'articulos', 'videos', 'faq'] as FilterType[]).map((f) => (
+            <button
+              key={f}
+              className={`search-filter-chip ${filter === f ? 'active' : ''}`}
+              onClick={() => setFilter(f)}
+            >
+              {f === 'todos' ? 'Todos' : f === 'articulos' ? 'Artículos' : f === 'videos' ? 'Videos' : 'FAQ'}
+            </button>
+          ))}
         </div>
-      )}
+        <div className="search-popular-row">
+          <span className="search-popular-label">🔥 Popular:</span>
+          {POPULAR_SEARCHES.slice(0, 4).map((s, i) => (
+            <span key={s}>
+              <button className="search-popular-item" onClick={() => setQuery(s)}>{s}</button>
+              {i < 3 && <span className="search-popular-sep">·</span>}
+            </span>
+          ))}
+        </div>
+      </div>
 
       {(results.length > 0 || loading) && (
         <div className="search-results">
-          {loading && (
-            <div className="search-result-item" style={{ color: '#aaa' }}>
-              Buscando...
-            </div>
-          )}
+          {loading && <div className="search-result-item" style={{ color: '#aaa' }}>Buscando...</div>}
           {results.slice(0, 6).map((r: any) => (
             <Link
               key={r.id}
