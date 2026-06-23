@@ -813,3 +813,97 @@ details[open] .faq-chevron { transform: rotate(180deg); }
   transition: all 0.15s;
 }
 .see-all-btn:hover { background: var(--lp); text-decoration: none; }
+.search-filters {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.search-filter-btn {
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  cursor: pointer;
+  border: 0.5px solid var(--border);
+  color: var(--muted);
+  background: #fff;
+  transition: all 0.15s;
+}
+.search-filter-btn:hover { border-color: var(--purple); color: var(--purple); }
+.search-filter-btn.active { background: var(--purple); color: #fff; border-color: var(--purple); }
+
+.search-suggestions {
+  background: #fff;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-top: 8px;
+  z-index: 50;
+}
+.search-suggestions-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+.search-suggestions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.search-suggestion-tag {
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  cursor: pointer;
+  border: 0.5px solid rgba(112,78,253,0.2);
+  color: var(--purple);
+  background: var(--lp);
+  transition: all 0.15s;
+}
+.search-suggestion-tag:hover { background: var(--purple); color: #fff; }
+
+.voice-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0 6px;
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+.voice-btn:hover { transform: scale(1.1); }
+.voice-btn.active { animation: pulse 1s infinite; }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Modo oscuro */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f0f1a;
+    --text: #e8e8f0;
+    --muted: #9ca3af;
+    --border: rgba(112, 78, 253, 0.2);
+  }
+  body { background: var(--bg); color: var(--text); }
+  .navbar, .hero, .cat-card, .art-rank-card, .faq-item,
+  .article-list-item, .article-body, .helpful-box,
+  .contact-section-inner, .article-sidebar,
+  .cat-page-header, .section-articles-panel,
+  .video-card, .search-results, .search-suggestions,
+  .sidebar-cat-btn, .section-accordion-articles { background: #1a1a2e !important; }
+  .cat-card-large.purple { background: #1e1a35 !important; }
+  .cat-card-large.blue { background: #1a2535 !important; }
+  .cat-card-name, .cat-card-large-name, .art-rank-title,
+  .article-list-title, .section-card-large-name,
+  .sidebar-cat-name, .faq-question, .cat-page-name,
+  .section-group-name { color: #e8e8f0 !important; }
+  .search-input-row { background: #1a1a2e; }
+  .search-filter-btn, .search-suggestion-tag,
+  .country-option, .country-btn { background: #1a1a2e; color: var(--purple); }
+  .footer { background: #080810; }
+}
