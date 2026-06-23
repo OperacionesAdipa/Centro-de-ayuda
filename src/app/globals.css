@@ -1185,3 +1185,67 @@ html.dark .tutorial-input { background: #1a1a2e; color: #e8e8f0; border-color: r
 @media (max-width: 640px) {
   .help-section { grid-template-columns: 1fr; }
 }
+html.dark .hero h1,
+html.dark .section-title,
+html.dark .art-rank-title,
+html.dark .cat-page-name,
+html.dark .help-card-title,
+html.dark .contact-title,
+html.dark .recently-viewed-title,
+html.dark .sidebar-title,
+html.dark h1,
+html.dark h2,
+html.dark h3 { color: #e8e8f0 !important; }
+
+html.dark .hero-sub,
+html.dark .cat-card-meta,
+html.dark .cat-card-large-meta,
+html.dark .art-rank-meta,
+html.dark .article-list-meta,
+html.dark .help-card-desc,
+html.dark .contact-sub,
+html.dark .contact-hours,
+html.dark .faq-answer,
+html.dark .section-group-title,
+html.dark .cat-page-desc { color: #9ca3af !important; }
+
+html.dark .hero-tag { background: #1e1a35; color: #a78bfa; }
+html.dark .hero-stat-n { color: #a78bfa; }
+html.dark .art-rank-num { color: rgba(167,139,250,0.3); }
+html.dark .section-title-icon { color: #a78bfa; }
+html.dark .search-popular-item { color: #a78bfa; }
+html.dark .search-filter-label,
+html.dark .search-popular-label,
+html.dark .navbar-subtitle { color: #9ca3af; }
+html.dark .search-input { color: #e8e8f0; }
+html.dark .search-popular-sep { color: #444; }
+html.dark .section-group-name::before { background: #a78bfa; }
+html.dark .article-country-badge { background: #1e1a35; color: #a78bfa; }
+html.dark .helpful-box span { color: #e8e8f0; }
+html.dark .art-rank-card:hover { background: #1e1a35 !important; }
+html.dark .article-list-item:hover { background: #1e1a35 !important; }
+html.dark .faq-item.open .faq-question { background: #1e1a35 !important; color: #a78bfa; }
+html.dark .contact-section-inner { background: #1a1a2e !important; border-color: rgba(112,78,253,0.2); }
+html.dark .help-card.tutorial-card { border-top-color: #a78bfa; }
+html.dark .help-card.video-card { border-top-color: #60c8ff; }
+html.dark .video-card-sub { color: #9ca3af; }
+html.dark .footer-copy,
+html.dark .footer-region { color: rgba(255,255,255,0.35); }
+html.dark .sidebar-section-btn { color: #9ca3af; }
+html.dark .sidebar-article-link { color: #9ca3af; }
+html.dark .back-btn-top { color: #a78bfa; border-color: rgba(167,139,250,0.3); }
+html.dark .back-btn-solid { background: #a78bfa; color: #fff; }
+html.dark .section-tab { background: #1a1a2e; color: #9ca3af; border-color: rgba(112,78,253,0.2); }
+html.dark .section-tab.active { background: #a78bfa; color: #fff; }
+html.dark .section-cards-grid .section-card { background: #1a1a2e !important; }
+html.dark .section-card-large.purple { background: #1e1a35 !important; }
+html.dark .section-card-large.blue { background: #1a2535 !important; }
+html.dark .tutorial-input { background: #1a1a2e; color: #e8e8f0; border-color: rgba(112,78,253,0.2); }
+html.dark .help-card-btn.outline { background: #1a1a2e; color: #a78bfa; border-color: rgba(167,139,250,0.3); }
+html.dark .recently-viewed-item { border-color: rgba(112,78,253,0.2); }
+html.dark .search-results { background: #1a1a2e; border-color: rgba(112,78,253,0.2); }
+html.dark .search-result-item { color: #e8e8f0; border-color: rgba(112,78,253,0.1); }
+html.dark .search-result-item:hover { background: #1e1a35; }
+html.dark .country-dropdown { background: #1a1a2e; }
+html.dark .country-option { background: #1a1a2e; color: #a78bfa; border-color: rgba(112,78,253,0.2); }
+html.dark .whatsapp-float { box-shadow: 0 2px 12px rgba(0,0,0,0.5); }
