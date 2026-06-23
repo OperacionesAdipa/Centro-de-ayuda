@@ -28,7 +28,7 @@ export function Navbar() {
     const savedFont = localStorage.getItem('adipa_font_size') as FontSize
     if (savedFont && FONT_SIZES[savedFont]) {
       setFontSizeState(savedFont)
-      document.documentElement.style.fontSize = FONT_SIZES[savedFont]
+      applyFontScale(savedFont)
     }
   }, [])
 
@@ -43,10 +43,53 @@ export function Navbar() {
     }
   }
 
+  function applyFontScale(size: FontSize) {
+    const scales: Record<FontSize, number> = {
+      small: 0.85,
+      normal: 1,
+      large: 1.25,
+    }
+    document.documentElement.style.fontSize = FONT_SIZES[size]
+    document.documentElement.setAttribute('data-font-size', size)
+
+    const styleId = 'adipa-font-scale'
+    let style = document.getElementById(styleId)
+    if (!style) {
+      style = document.createElement('style')
+      style.id = styleId
+      document.head.appendChild(style)
+    }
+
+    const scale = scales[size]
+    style.innerHTML = `
+      body, body * {
+        font-size: calc(var(--base-font-size, 1em) * ${scale}) !important;
+      }
+      .hero h1 { font-size: ${32 * scale}px !important; }
+      .cat-page-name { font-size: ${22 * scale}px !important; }
+      .article-page h1 { font-size: ${26 * scale}px !important; }
+      .section-group-name { font-size: ${16 * scale}px !important; }
+      .art-rank-title { font-size: ${14 * scale}px !important; }
+      .article-list-title { font-size: ${13 * scale}px !important; }
+      .cat-card-large-name { font-size: ${15 * scale}px !important; }
+      .section-card-large-name { font-size: ${14 * scale}px !important; }
+      .faq-question { font-size: ${14 * scale}px !important; }
+      .faq-answer { font-size: ${13 * scale}px !important; }
+      .article-body { font-size: ${15 * scale}px !important; }
+      .article-body p, .article-body li { font-size: ${15 * scale}px !important; }
+      .sidebar-cat-name { font-size: ${14 * scale}px !important; }
+      .sidebar-section-btn { font-size: ${13 * scale}px !important; }
+      .sidebar-article-link { font-size: ${12 * scale}px !important; }
+      .help-card-title { font-size: ${16 * scale}px !important; }
+      .help-card-desc { font-size: ${13 * scale}px !important; }
+      .navbar-subtitle { font-size: ${13 * scale}px !important; }
+    `
+  }
+
   function applyFontSize(size: FontSize) {
     setFontSizeState(size)
     localStorage.setItem('adipa_font_size', size)
-    document.documentElement.style.fontSize = FONT_SIZES[size]
+    applyFontScale(size)
     setFontOpen(false)
   }
 
@@ -85,6 +128,9 @@ export function Navbar() {
             <button className={`font-size-option small ${fontSize === 'small' ? 'active' : ''}`} onClick={() => applyFontSize('small')}>A-</button>
             <button className={`font-size-option normal ${fontSize === 'normal' ? 'active' : ''}`} onClick={() => applyFontSize('normal')}>A</button>
             <button className={`font-size-option large ${fontSize === 'large' ? 'active' : ''}`} onClick={() => applyFontSize('large')}>A+</button>
+          </div>
+          <div style={{ marginTop: 8, fontSize: 11, color: 'var(--muted)', textAlign: 'center' }}>
+            {fontSize === 'small' ? 'Texto pequeño' : fontSize === 'large' ? 'Texto grande' : 'Tamaño normal'}
           </div>
         </div>
       )}
