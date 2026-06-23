@@ -1249,3 +1249,23 @@ html.dark .search-result-item:hover { background: #1e1a35; }
 html.dark .country-dropdown { background: #1a1a2e; }
 html.dark .country-option { background: #1a1a2e; color: #a78bfa; border-color: rgba(112,78,253,0.2); }
 html.dark .whatsapp-float { box-shadow: 0 2px 12px rgba(0,0,0,0.5); }
+html.dark .extra-help-title { color: #e8e8f0 !important; }
+html.dark .extra-help-btn { background: #1a1a2e; color: #a78bfa; border-color: rgba(167,139,250,0.3); }
+html.dark .helpful-btn { background: #1a1a2e; color: #a78bfa; border-color: rgba(167,139,250,0.3); }
+html.dark .article-meta span { color: #9ca3af; }
+html.dark .article-page h1 { color: #e8e8f0; }
+
+html.dark .article-body,
+html.dark .article-body p,
+html.dark .article-body li,
+html.dark .article-body span,
+html.dark .article-body td,
+html.dark .article-body th,
+html.dark .article-body div { color: #c8c8d8 !important; }
+
+html.dark .article-body strong { color: #e8e8f0 !important; }
+html.dark .article-body h2,
+html.dark .article-body h3 { color: #e8e8f0 !important; }
+html.dark .article-body a { color: #a78bfa !important; }
+html.dark .article-body [style*="background"] { background: transparent !important; }
+html.dark .article-body [style*="color"] { color: #c8c8d8 !important; }
