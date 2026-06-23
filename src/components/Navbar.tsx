@@ -7,9 +7,9 @@ import { useCountry } from '@/lib/useCountry'
 type FontSize = 'small' | 'normal' | 'large'
 
 const FONT_SIZES: Record<FontSize, string> = {
-  small: '14px',
+  small: '12px',
   normal: '16px',
-  large: '19px',
+  large: '22px',
 }
 
 export function Navbar() {
