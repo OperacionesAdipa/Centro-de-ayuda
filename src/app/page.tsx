@@ -12,6 +12,7 @@ import { ContactSection } from '@/components/ContactSection'
 import { CatsGrid } from '@/components/CatsGrid'
 import { VideoTutorials } from '@/components/VideoTutorials'
 import { RecentlyViewed } from '@/components/RecentlyViewed'
+import { HelpSection } from '@/components/HelpSection'
 
 export const revalidate = 300
 
@@ -107,6 +108,8 @@ export default async function HomePage() {
         <FaqSection articles={allArticles} />
 
         <div className="section-divider" />
+
+        <HelpSection />
 
         <ContactSection />
       </div>
