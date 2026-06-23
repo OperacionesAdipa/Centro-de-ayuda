@@ -1377,3 +1377,33 @@ html.dark .font-size-dropdown { background: #1a1a2e; border-color: rgba(112,78,2
 html.dark .font-size-option { background: #1a1a2e; color: #a78bfa; border-color: rgba(112,78,253,0.2); }
 html.dark .font-size-option.active { background: #a78bfa; color: #fff; }
 html.dark .font-size-label { color: #9ca3af; }
+[data-font="small"] .article-body,
+[data-font="small"] .faq-answer,
+[data-font="small"] .art-rank-title,
+[data-font="small"] .article-list-title,
+[data-font="small"] .cat-card-large-name,
+[data-font="small"] .help-card-desc,
+[data-font="small"] .section-card-large-name { font-size: 12px !important; }
+[data-font="small"] .hero h1 { font-size: 24px !important; }
+[data-font="small"] .article-page h1 { font-size: 20px !important; }
+[data-font="small"] .cat-page-name { font-size: 18px !important; }
+[data-font="small"] .section-group-name,
+[data-font="small"] .help-card-title { font-size: 13px !important; }
+
+[data-font="large"] .article-body,
+[data-font="large"] .faq-answer,
+[data-font="large"] .art-rank-title,
+[data-font="large"] .article-list-title,
+[data-font="large"] .cat-card-large-name,
+[data-font="large"] .help-card-desc,
+[data-font="large"] .section-card-large-name { font-size: 18px !important; }
+[data-font="large"] .hero h1 { font-size: 40px !important; }
+[data-font="large"] .article-page h1 { font-size: 32px !important; }
+[data-font="large"] .cat-page-name { font-size: 28px !important; }
+[data-font="large"] .section-group-name,
+[data-font="large"] .help-card-title { font-size: 20px !important; }
+[data-font="large"] .hero-sub,
+[data-font="large"] .cat-page-desc,
+[data-font="large"] .art-rank-meta { font-size: 16px !important; }
+[data-font="large"] .sidebar-cat-name { font-size: 16px !important; }
+[data-font="large"] .faq-question { font-size: 17px !important; }
