@@ -6,12 +6,6 @@ import { useCountry } from '@/lib/useCountry'
 
 type FontSize = 'small' | 'normal' | 'large'
 
-const FONT_SIZES: Record<FontSize, string> = {
-  small: '12px',
-  normal: '16px',
-  large: '22px',
-}
-
 export function Navbar() {
   const { country, setCountry, COUNTRIES } = useCountry()
   const [open, setOpen] = useState(false)
@@ -26,9 +20,9 @@ export function Navbar() {
       document.documentElement.classList.add('dark')
     }
     const savedFont = localStorage.getItem('adipa_font_size') as FontSize
-    if (savedFont && FONT_SIZES[savedFont]) {
+    if (savedFont) {
       setFontSizeState(savedFont)
-      applyFontScale(savedFont)
+      document.documentElement.setAttribute('data-font', savedFont)
     }
   }, [])
 
@@ -43,53 +37,10 @@ export function Navbar() {
     }
   }
 
-  function applyFontScale(size: FontSize) {
-    const scales: Record<FontSize, number> = {
-      small: 0.85,
-      normal: 1,
-      large: 1.25,
-    }
-    document.documentElement.style.fontSize = FONT_SIZES[size]
-    document.documentElement.setAttribute('data-font-size', size)
-
-    const styleId = 'adipa-font-scale'
-    let style = document.getElementById(styleId)
-    if (!style) {
-      style = document.createElement('style')
-      style.id = styleId
-      document.head.appendChild(style)
-    }
-
-    const scale = scales[size]
-    style.innerHTML = `
-      body, body * {
-        font-size: calc(var(--base-font-size, 1em) * ${scale}) !important;
-      }
-      .hero h1 { font-size: ${32 * scale}px !important; }
-      .cat-page-name { font-size: ${22 * scale}px !important; }
-      .article-page h1 { font-size: ${26 * scale}px !important; }
-      .section-group-name { font-size: ${16 * scale}px !important; }
-      .art-rank-title { font-size: ${14 * scale}px !important; }
-      .article-list-title { font-size: ${13 * scale}px !important; }
-      .cat-card-large-name { font-size: ${15 * scale}px !important; }
-      .section-card-large-name { font-size: ${14 * scale}px !important; }
-      .faq-question { font-size: ${14 * scale}px !important; }
-      .faq-answer { font-size: ${13 * scale}px !important; }
-      .article-body { font-size: ${15 * scale}px !important; }
-      .article-body p, .article-body li { font-size: ${15 * scale}px !important; }
-      .sidebar-cat-name { font-size: ${14 * scale}px !important; }
-      .sidebar-section-btn { font-size: ${13 * scale}px !important; }
-      .sidebar-article-link { font-size: ${12 * scale}px !important; }
-      .help-card-title { font-size: ${16 * scale}px !important; }
-      .help-card-desc { font-size: ${13 * scale}px !important; }
-      .navbar-subtitle { font-size: ${13 * scale}px !important; }
-    `
-  }
-
   function applyFontSize(size: FontSize) {
     setFontSizeState(size)
     localStorage.setItem('adipa_font_size', size)
-    applyFontScale(size)
+    document.documentElement.setAttribute('data-font', size)
     setFontOpen(false)
   }
 
@@ -110,7 +61,7 @@ export function Navbar() {
           <button className="dark-mode-btn" onClick={toggleDark} title={darkMode ? 'Modo claro' : 'Modo oscuro'} aria-label={darkMode ? 'Activar modo claro' : 'Activar modo oscuro'}>
             {darkMode ? '☀️' : '🌙'}
           </button>
-          <button className="font-size-btn" onClick={() => { setFontOpen(!fontOpen); setOpen(false) }} title="Tamaño de texto" aria-label="Ajustar tamaño de texto">
+          <button className="font-size-btn" onClick={() => { setFontOpen(!fontOpen); setOpen(false) }} aria-label="Ajustar tamaño de texto">
             Aa
           </button>
           <button className="country-btn" onClick={() => { setOpen(!open); setFontOpen(false) }}>
