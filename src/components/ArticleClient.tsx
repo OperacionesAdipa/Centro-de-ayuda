@@ -1,11 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCountry } from '@/lib/useCountry'
 import { ZArticle, slugify, extractTagsFromBody, fixMediaUrls } from '@/lib/zendesk'
-import { replaceAdipaLinks, replaceMexicoTerms, COUNTRY_WHATSAPP } from '@/lib/countryUtils'
+import { replaceAdipaLinks, replaceMexicoTerms, COUNTRY_WHATSAPP, COUNTRY_EMAIL } from '@/lib/countryUtils'
+import { trackArticleView } from './RecentlyViewed'
+
+const CALENDAR_LINK = 'https://calendar.google.com/appointments/schedules/AcZssZ133YMSZW5tSEQrDrPk6VWkycf-fQlmoSJgnEjEVleVcrTTWV0DHFBE9EVv6hI2teNPqTII-G5z'
 
 interface Props {
   article: ZArticle
@@ -18,12 +21,35 @@ interface Props {
 export function ArticleClient({ article, updatedDate, categoryName, categorySlug, relatedArticles }: Props) {
   const { country } = useCountry()
   const [helpful, setHelpful] = useState<null | boolean>(null)
+  const [showTutorialForm, setShowTutorialForm] = useState(false)
+  const [tutorialName, setTutorialName] = useState('')
+  const [tutorialEmail, setTutorialEmail] = useState('')
+  const [tutorialDesc, setTutorialDesc] = useState('')
+  const [tutorialSent, setTutorialSent] = useState(false)
   const router = useRouter()
 
   const { cleanBody } = extractTagsFromBody(article.body ?? '')
   const body = replaceMexicoTerms(fixMediaUrls(replaceAdipaLinks(cleanBody, country)), country)
   const title = replaceMexicoTerms(article.title, country)
   const whatsapp = COUNTRY_WHATSAPP[country] ?? COUNTRY_WHATSAPP['Chile']
+  const email = COUNTRY_EMAIL[country] ?? COUNTRY_EMAIL['Chile']
+
+  useEffect(() => {
+    trackArticleView(String(article.id), article.title, `${article.id}-${slugify(article.title)}`)
+  }, [article.id])
+
+  async function sendTutorialRequest() {
+    if (!tutorialName || !tutorialEmail || !tutorialDesc) return
+    const res = await fetch('/api/tutorial-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: tutorialName, email: tutorialEmail, description: tutorialDesc, country, toEmail: email }),
+    })
+    if (res.ok) {
+      setTutorialSent(true)
+      setShowTutorialForm(false)
+    }
+  }
 
   return (
     <>
@@ -66,6 +92,68 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
             </span>
           )}
         </div>
+      </div>
+
+      <div className="extra-help-section">
+        <div className="extra-help-title">¿Necesitas más ayuda?</div>
+        <div className="extra-help-btns">
+          <button
+            className="extra-help-btn"
+            onClick={() => setShowTutorialForm(!showTutorialForm)}
+          >
+            🎬 Solicitar un tutorial
+          </button>
+          
+            href={CALENDAR_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="extra-help-btn"
+          >
+            📅 Agendar videollamada
+          </a>
+        </div>
+
+        {showTutorialForm && !tutorialSent && (
+          <div className="tutorial-form">
+            <p className="tutorial-form-desc">
+              Cuéntanos qué tutorial necesitas y nos pondremos en contacto contigo.
+            </p>
+            <input
+              className="tutorial-input"
+              type="text"
+              placeholder="Tu nombre"
+              value={tutorialName}
+              onChange={(e) => setTutorialName(e.target.value)}
+            />
+            <input
+              className="tutorial-input"
+              type="email"
+              placeholder="Tu correo"
+              value={tutorialEmail}
+              onChange={(e) => setTutorialEmail(e.target.value)}
+            />
+            <textarea
+              className="tutorial-input"
+              placeholder="¿Qué tutorial necesitas? Descríbelo brevemente..."
+              value={tutorialDesc}
+              onChange={(e) => setTutorialDesc(e.target.value)}
+              rows={3}
+            />
+            <button
+              className="back-btn-top back-btn-solid"
+              onClick={sendTutorialRequest}
+              style={{ marginTop: 8 }}
+            >
+              Enviar solicitud
+            </button>
+          </div>
+        )}
+
+        {tutorialSent && (
+          <div style={{ marginTop: 12, fontSize: 14, color: '#704EFD', fontWeight: 500 }}>
+            ¡Solicitud enviada! Te contactaremos pronto. 🎉
+          </div>
+        )}
       </div>
 
       {relatedArticles.length > 0 && (
