@@ -11,7 +11,7 @@ interface ViewedArticle {
 }
 
 const STORAGE_KEY = 'adipa_recently_viewed'
-const MAX_ITEMS = 5
+const MAX_ITEMS = 3
 
 export function trackArticleView(id: string, title: string, slug: string) {
   try {
@@ -28,7 +28,7 @@ export function RecentlyViewed() {
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]')
-      setArticles(stored)
+      setArticles(stored.slice(0, MAX_ITEMS))
     } catch {}
   }, [])
 
@@ -42,11 +42,7 @@ export function RecentlyViewed() {
       </div>
       <div className="recently-viewed-list">
         {articles.map((art) => (
-          <Link
-            key={art.id}
-            href={`/articulo/${art.slug}`}
-            className="recently-viewed-item"
-          >
+          <Link key={art.id} href={`/articulo/${art.slug}`} className="recently-viewed-item">
             <span className="recently-viewed-icon">📄</span>
             <span className="recently-viewed-title">{art.title}</span>
             <span className="recently-viewed-arrow">›</span>
