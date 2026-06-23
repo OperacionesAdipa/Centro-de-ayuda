@@ -907,3 +907,91 @@ details[open] .faq-chevron { transform: rotate(180deg); }
   .country-option, .country-btn { background: #1a1a2e; color: var(--purple); }
   .footer { background: #080810; }
 }
+.extra-help-section {
+  margin-top: 24px;
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 20px;
+  border: 0.5px solid var(--border);
+}
+.extra-help-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dark);
+  margin-bottom: 12px;
+}
+.extra-help-btns {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.extra-help-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  cursor: pointer;
+  border: 0.5px solid rgba(112,78,253,0.25);
+  color: var(--purple);
+  background: #fff;
+  text-decoration: none;
+  transition: all 0.15s;
+  font-weight: 500;
+}
+.extra-help-btn:hover { background: var(--lp); text-decoration: none; }
+
+.tutorial-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--border);
+}
+.tutorial-form-desc {
+  font-size: 13px;
+  color: var(--muted);
+}
+.tutorial-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border);
+  font-size: 13px;
+  color: var(--dark);
+  background: #fff;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s;
+  resize: vertical;
+}
+.tutorial-input:focus { border-color: var(--purple); }
+
+.recently-viewed {
+  margin-bottom: 32px;
+}
+.recently-viewed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.recently-viewed-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  text-decoration: none;
+  transition: all 0.15s;
+  font-size: 13px;
+  color: var(--dark);
+}
+.recently-viewed-item:hover { border-color: var(--purple); background: var(--lp); text-decoration: none; }
+.recently-viewed-icon { flex-shrink: 0; }
+.recently-viewed-title { flex: 1; }
+.recently-viewed-arrow { color: var(--muted); font-size: 14px; }
