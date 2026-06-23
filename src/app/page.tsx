@@ -11,6 +11,7 @@ import { CountryHero } from '@/components/CountryHero'
 import { ContactSection } from '@/components/ContactSection'
 import { CatsGrid } from '@/components/CatsGrid'
 import { VideoTutorials } from '@/components/VideoTutorials'
+import { RecentlyViewed } from '@/components/RecentlyViewed'
 
 export const revalidate = 300
 
@@ -44,6 +45,8 @@ export default async function HomePage() {
       />
 
       <div className="main">
+        <RecentlyViewed />
+
         <div className="section-header">
           <h2 className="section-title">
             <span className="section-title-icon">⊞</span>
