@@ -71,6 +71,7 @@ export default function AgentesPage() {
         </div>
         <div className="agent-header-right">
           <Link href="/" className="agent-nav-btn" target="_blank">Ver sitio</Link>
+          <Link href="/agentes/urls" className="agent-nav-btn">🔗 URLs</Link>
           <Link href="/agentes/nuevo" className="agent-nav-btn primary">+ Nuevo artículo</Link>
           <button className="agent-nav-btn" onClick={logout}>Cerrar sesión</button>
         </div>
