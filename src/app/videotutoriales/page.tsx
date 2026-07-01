@@ -1,8 +1,8 @@
-import { getArticles, getCategories, getSections } from '@/lib/zendesk'
+import { getArticles, getCategories, getSections } from '@/lib/supabaseQueries'
 import { ArticleSidebar } from '@/components/ArticleSidebar'
 import { VideoTutorialsGrid } from '@/components/VideoTutorialsGrid'
 
-export const revalidate = 300
+export const revalidate = 60
 
 export default async function VideoTutorialesPage() {
   const [allArticles, allSections, categories] = await Promise.all([
