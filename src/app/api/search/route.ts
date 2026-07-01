@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { searchArticles, extractTagsFromBody } from '@/lib/zendesk'
+import { searchArticles, extractTagsFromBody } from '@/lib/supabaseQueries'
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q') ?? ''
@@ -11,13 +11,13 @@ export async function GET(req: NextRequest) {
 
   const results = articles
     .slice(0, 12)
-    .map((art) => {
+    .map((art: any) => {
       const { isFaq } = extractTagsFromBody(art.body ?? '')
       const hasVideo = /<iframe[^>]+src=["'][^"']*(vimeo|youtube|loom)[^"']*["']/i.test(art.body ?? '')
       const type = isFaq ? 'faq' : hasVideo ? 'video' : 'articulo'
       return { ...art, type }
     })
-    .filter((art) => {
+    .filter((art: any) => {
       if (filter === 'todos') return true
       if (filter === 'videos') return art.type === 'video'
       if (filter === 'faq') return art.type === 'faq'
