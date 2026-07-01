@@ -123,7 +123,13 @@ export async function POST(req: NextRequest) {
     while ((linkMatch = linkRegex.exec(html)) !== null) {
       const href = linkMatch[1]
       const text = linkMatch[2].replace(/<[^>]+>/g, '').trim()
-      if (text && href && !href.startsWith('#') && !href.startsWith('javascript')) {
+      if (
+        text &&
+        href &&
+        !href.startsWith('#') &&
+        !href.startsWith('javascript') &&
+        !href.includes('zendesk.com')
+      ) {
         const fullHref = href.startsWith('http') ? href : `${new URL(urlData.url).origin}${href}`
         links.push({ text, href: fullHref })
       }
@@ -140,7 +146,11 @@ export async function POST(req: NextRequest) {
       .trim()
       .slice(0, 8000)
 
-    const linksText = links.slice(0, 30).map(l => `- "${l.text}" → ${l.href}`).join('\n')
+    const filteredLinks = links
+      .filter(l => !l.href.includes('zendesk.com'))
+      .slice(0, 30)
+
+    const linksText = filteredLinks.map(l => `- "${l.text}" → ${l.href}`).join('\n')
 
     const { data: articleUrlData } = await supabaseAdmin
       .from('article_source_urls')
@@ -250,6 +260,7 @@ INSTRUCCIONES:
 - Usa formato HTML con <p>, <strong>, <ul>, <li>, <ol> según corresponda
 - Si hay pasos a seguir, usa una lista numerada <ol>
 - Cuando hagas referencia a algo de la página, incluye el hipervínculo correspondiente usando <a href="URL">texto</a>
+- NUNCA incluyas links que contengan "zendesk.com" — si encuentras alguno ignóralo completamente
 - ${screenshot ? 'Incluye la imagen en el lugar más relevante del artículo' : 'No incluyas imágenes'}
 - Mantén el artículo conciso y al punto
 - NO incluyas el título en el HTML
