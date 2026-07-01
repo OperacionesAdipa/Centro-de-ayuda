@@ -1,6 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
+export const maxDuration = 300
+
+async function takeScreenshot(url: string, selector?: string): Promise<string | null> {
+  try {
+    const browserlessKey = process.env.BROWSERLESS_API_KEY
+    if (!browserlessKey) return null
+
+    const body: any = {
+      url,
+      options: {
+        fullPage: false,
+        type: 'jpeg',
+        quality: 80,
+      },
+    }
+
+    if (selector) {
+      body.selector = selector
+    } else {
+      body.options.fullPage = true
+    }
+
+    const res = await fetch(`https://chrome.browserless.io/screenshot?token=${browserlessKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+    if (!res.ok) return null
+
+    const buffer = await res.arrayBuffer()
+    const fileName = `screenshot-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
+
+    const { error } = await supabaseAdmin.storage
+      .from('article-images')
+      .upload(fileName, buffer, { contentType: 'image/jpeg', upsert: true })
+
+    if (error) return null
+
+    const { data } = supabaseAdmin.storage
+      .from('article-images')
+      .getPublicUrl(fileName)
+
+    return data.publicUrl
+  } catch {
+    return null
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { url_id } = await req.json()
@@ -55,9 +104,15 @@ export async function POST(req: NextRequest) {
       .select('*')
       .in('id', articleIds)
 
+    const allArticleTitles = (articles ?? []).map((a: any) => a.title)
+
+    const screenshot = await takeScreenshot(urlData.url)
+
     const results = []
 
     for (const article of articles ?? []) {
+      const otherArticleTitles = allArticleTitles.filter((t: string) => t !== article.title)
+
       const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -71,24 +126,35 @@ export async function POST(req: NextRequest) {
           messages: [
             {
               role: 'user',
-              content: `Eres un redactor de artículos de centro de ayuda para ADIPA, una plataforma de educación online.
+              content: `Eres un redactor experto de artículos de centro de ayuda para ADIPA, una plataforma de educación online en Latinoamérica.
 
-Tienes el siguiente artículo existente:
-TÍTULO: ${article.title}
-CONTENIDO ACTUAL:
-${article.body?.replace(/<[^>]*>/g, ' ').slice(0, 2000)}
+Tu tarea es actualizar el siguiente artículo respondiendo ÚNICAMENTE la pregunta del título. No incluyas información que corresponda a otros artículos relacionados.
 
-Y el contenido actualizado de la página de referencia:
+ARTÍCULO A ACTUALIZAR:
+Título: ${article.title}
+Contenido actual:
+${article.body?.replace(/<[^>]*>/g, ' ').slice(0, 1500)}
+
+OTROS ARTÍCULOS RELACIONADOS A ESTA MISMA URL (NO incluyas información de estos temas):
+${otherArticleTitles.map((t: string, i: number) => `${i + 1}. ${t}`).join('\n')}
+
+CONTENIDO ACTUALIZADO DE LA PÁGINA DE REFERENCIA:
 ${cleanText}
 
-Tu tarea es reescribir el artículo en HTML manteniendo:
-- El mismo título
-- El mismo estilo y tono amigable
-- Formato HTML con párrafos <p>, negritas <strong>, listas <ul><li>, etc.
-- Información actualizada basada en el contenido de la página
-- Instrucciones claras paso a paso si corresponde
+${screenshot ? `CAPTURA DE PANTALLA DE LA PÁGINA:
+Incluye esta imagen donde sea relevante: <img src="${screenshot}" alt="Captura de pantalla" style="max-width:100%; border-radius:8px; margin:12px 0;">` : ''}
 
-Responde ÚNICAMENTE con el HTML del contenido del artículo, sin título, sin explicaciones, sin markdown.`,
+INSTRUCCIONES:
+- Responde únicamente la pregunta: "${article.title}"
+- NO incluyas información que corresponda a los otros artículos listados arriba
+- Escribe en español, tono amigable y claro
+- Usa formato HTML con <p>, <strong>, <ul>, <li>, <ol> según corresponda
+- Si hay pasos a seguir, usa una lista numerada <ol>
+- Incluye la imagen capturada donde sea más relevante para ilustrar el proceso
+- Mantén el artículo conciso y al punto
+- NO incluyas el título en el HTML, solo el contenido
+
+Responde ÚNICAMENTE con el HTML del contenido, sin explicaciones ni markdown.`,
             },
           ],
         }),
