@@ -87,7 +87,6 @@ export const CATEGORY_ICONS: Record<string, string> = {
   'Aula Virtual': '💻',
   'Programas y Cursos': '🎓',
   'Preguntas frecuentes': '❓',
-  'Preguntas Frecuentes': '❓',
 }
 
 export function extractTagsFromBody(body: string): { countries: string[]; isFaq: boolean; cleanBody: string } {
