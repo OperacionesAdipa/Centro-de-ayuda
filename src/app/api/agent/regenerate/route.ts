@@ -3,30 +3,61 @@ import { supabaseAdmin } from '@/lib/supabase'
 
 export const maxDuration = 300
 
-async function takeScreenshot(url: string, selector?: string): Promise<string | null> {
+async function takeTargetedScreenshot(url: string, targetText: string): Promise<string | null> {
   try {
     const browserlessKey = process.env.BROWSERLESS_API_KEY
     if (!browserlessKey) return null
 
-    const body: any = {
-      url,
-      options: {
-        fullPage: false,
-        type: 'jpeg',
-        quality: 80,
-      },
-    }
-
-    if (selector) {
-      body.selector = selector
-    } else {
-      body.options.fullPage = true
-    }
-
-    const res = await fetch(`https://chrome.browserless.io/screenshot?token=${browserlessKey}`, {
+    const res = await fetch(`https://chrome.browserless.io/function?token=${browserlessKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        code: `
+          module.exports = async ({ page }) => {
+            await page.goto('${url}', { waitUntil: 'networkidle2', timeout: 30000 });
+            await page.setViewport({ width: 1280, height: 800 });
+
+            const targetText = ${JSON.stringify(targetText)};
+
+            const element = await page.evaluateHandle((text) => {
+              const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+              let node;
+              while (node = walker.nextNode()) {
+                if (node.textContent.toLowerCase().includes(text.toLowerCase())) {
+                  return node.parentElement;
+                }
+              }
+              return null;
+            }, targetText);
+
+            if (element && element.asElement()) {
+              await element.asElement().evaluate((el) => {
+                el.style.outline = '3px solid #704EFD';
+                el.style.outlineOffset = '4px';
+                el.style.backgroundColor = 'rgba(112, 78, 253, 0.08)';
+                el.style.borderRadius = '4px';
+                el.scrollIntoView({ behavior: 'instant', block: 'center' });
+              });
+
+              await page.waitForTimeout(500);
+
+              const box = await element.asElement().boundingBox();
+              if (box) {
+                const padding = 80;
+                const clip = {
+                  x: Math.max(0, box.x - padding),
+                  y: Math.max(0, box.y - padding),
+                  width: Math.min(1280, box.width + padding * 2),
+                  height: Math.min(600, box.height + padding * 2),
+                };
+                return await page.screenshot({ type: 'jpeg', quality: 85, clip });
+              }
+            }
+
+            return await page.screenshot({ type: 'jpeg', quality: 85, clip: { x: 0, y: 0, width: 1280, height: 600 } });
+          };
+        `,
+      }),
     })
 
     if (!res.ok) return null
@@ -48,6 +79,14 @@ async function takeScreenshot(url: string, selector?: string): Promise<string | 
   } catch {
     return null
   }
+}
+
+function cleanHtml(text: string): string {
+  return text
+    .replace(/^```html\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim()
 }
 
 export async function POST(req: NextRequest) {
@@ -105,13 +144,56 @@ export async function POST(req: NextRequest) {
       .in('id', articleIds)
 
     const allArticleTitles = (articles ?? []).map((a: any) => a.title)
-
-    const screenshot = await takeScreenshot(urlData.url)
-
     const results = []
 
     for (const article of articles ?? []) {
       const otherArticleTitles = allArticleTitles.filter((t: string) => t !== article.title)
+
+      const analysisRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.ANTHROPIC_API_KEY!,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 300,
+          messages: [{
+            role: 'user',
+            content: `Analiza si el artículo "${article.title}" requiere imágenes para ser explicado correctamente.
+
+Contenido de la página de referencia:
+${cleanText.slice(0, 2000)}
+
+Responde en JSON con este formato exacto:
+{
+  "needsScreenshot": true o false,
+  "targetText": "texto exacto que aparece en la página y debe ser resaltado en el screenshot, o null si no necesita screenshot"
+}
+
+needsScreenshot debe ser true SOLO si el artículo explica un proceso visual paso a paso (ej: hacer clic en un botón, llenar un formulario, navegar por una interfaz).
+needsScreenshot debe ser false si el artículo es informativo (ej: qué es X, beneficios de X, preguntas conceptuales).
+
+Responde ÚNICAMENTE con el JSON, sin explicaciones.`,
+          }],
+        }),
+      })
+
+      const analysisData = await analysisRes.json()
+      let needsScreenshot = false
+      let targetText = null
+
+      try {
+        const analysis = JSON.parse(analysisData.content?.[0]?.text ?? '{}')
+        needsScreenshot = analysis.needsScreenshot ?? false
+        targetText = analysis.targetText ?? null
+      } catch {}
+
+      let screenshot: string | null = null
+      if (needsScreenshot && targetText) {
+        screenshot = await takeTargetedScreenshot(urlData.url, targetText)
+      }
 
       const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -123,12 +205,11 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
           max_tokens: 4000,
-          messages: [
-            {
-              role: 'user',
-              content: `Eres un redactor experto de artículos de centro de ayuda para ADIPA, una plataforma de educación online en Latinoamérica.
+          messages: [{
+            role: 'user',
+            content: `Eres un redactor experto de artículos de centro de ayuda para ADIPA, una plataforma de educación online en Latinoamérica.
 
-Tu tarea es actualizar el siguiente artículo respondiendo ÚNICAMENTE la pregunta del título. No incluyas información que corresponda a otros artículos relacionados.
+Tu tarea es actualizar el siguiente artículo respondiendo ÚNICAMENTE la pregunta del título.
 
 ARTÍCULO A ACTUALIZAR:
 Título: ${article.title}
@@ -141,27 +222,26 @@ ${otherArticleTitles.map((t: string, i: number) => `${i + 1}. ${t}`).join('\n')}
 CONTENIDO ACTUALIZADO DE LA PÁGINA DE REFERENCIA:
 ${cleanText}
 
-${screenshot ? `CAPTURA DE PANTALLA DE LA PÁGINA:
-Incluye esta imagen donde sea relevante: <img src="${screenshot}" alt="Captura de pantalla" style="max-width:100%; border-radius:8px; margin:12px 0;">` : ''}
+${screenshot ? `IMAGEN DISPONIBLE (úsala donde sea más relevante para ilustrar el proceso):
+<img src="${screenshot}" alt="Captura de pantalla" style="max-width:100%; border-radius:8px; margin:12px 0; border: 1px solid #e5e7eb;">` : ''}
 
 INSTRUCCIONES:
 - Responde únicamente la pregunta: "${article.title}"
 - NO incluyas información que corresponda a los otros artículos listados arriba
-- Escribe en español, tono amigable y claro
+- Escribe en español latinoamericano, tono amigable y claro
 - Usa formato HTML con <p>, <strong>, <ul>, <li>, <ol> según corresponda
 - Si hay pasos a seguir, usa una lista numerada <ol>
-- Incluye la imagen capturada donde sea más relevante para ilustrar el proceso
+- ${screenshot ? 'Incluye la imagen en el lugar más relevante del artículo' : 'No incluyas imágenes'}
 - Mantén el artículo conciso y al punto
-- NO incluyas el título en el HTML, solo el contenido
-
-Responde ÚNICAMENTE con el HTML del contenido, sin explicaciones ni markdown.`,
-            },
-          ],
+- NO incluyas el título en el HTML
+- Responde ÚNICAMENTE con HTML puro, sin bloques de código, sin markdown, sin \`\`\``,
+          }],
         }),
       })
 
       const claudeData = await claudeRes.json()
-      const newBody = claudeData.content?.[0]?.text ?? article.body
+      const rawBody = claudeData.content?.[0]?.text ?? article.body
+      const newBody = cleanHtml(rawBody)
 
       await supabaseAdmin
         .from('articles')
@@ -172,7 +252,7 @@ Responde ÚNICAMENTE con el HTML del contenido, sin explicaciones ni markdown.`,
         })
         .eq('id', article.id)
 
-      results.push({ id: article.id, title: article.title })
+      results.push({ id: article.id, title: article.title, screenshot: !!screenshot })
     }
 
     await supabaseAdmin
