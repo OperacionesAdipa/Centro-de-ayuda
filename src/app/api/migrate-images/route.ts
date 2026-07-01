@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
-const ZENDESK_SUBDOMAIN = process.env.ZENDESK_SUBDOMAIN || 'adipa'
 const ZENDESK_EMAIL = process.env.ZENDESK_EMAIL || ''
 const ZENDESK_TOKEN = process.env.ZENDESK_API_TOKEN || ''
 
@@ -33,7 +32,7 @@ export async function GET(req: NextRequest) {
     for (const article of articles ?? []) {
       if (!article.body) continue
 
-      const imageRegex = /\/guide-media\/([a-zA-Z0-9]+)/g
+      const imageRegex = /https:\/\/adipa\.zendesk\.com\/hc\/article_attachments\/(\d+)/g
       const matches = [...article.body.matchAll(imageRegex)]
 
       if (matches.length === 0) continue
@@ -43,7 +42,7 @@ export async function GET(req: NextRequest) {
 
       for (const match of matches) {
         const imageId = match[1]
-        const zendeskUrl = `https://${ZENDESK_SUBDOMAIN}.zendesk.com/guide-media/${imageId}`
+        const zendeskUrl = `https://adipa.zendesk.com/hc/article_attachments/${imageId}`
         totalImages++
 
         try {
@@ -52,13 +51,15 @@ export async function GET(req: NextRequest) {
             .list('', { search: imageId })
 
           if (existing && existing.length > 0) {
-            const { data: urlData } = supabaseAdmin.storage
-              .from('article-images')
-              .getPublicUrl(imageId)
-            newBody = newBody.replace(new RegExp(`/guide-media/${imageId}`, 'g'), urlData.publicUrl)
-            newBody = newBody.replace(new RegExp(`https://${ZENDESK_SUBDOMAIN}.zendesk.com/guide-media/${imageId}`, 'g'), urlData.publicUrl)
-            migratedImages++
-            continue
+            const existingFile = existing.find(f => f.name.startsWith(imageId))
+            if (existingFile) {
+              const { data: urlData } = supabaseAdmin.storage
+                .from('article-images')
+                .getPublicUrl(existingFile.name)
+              newBody = newBody.replace(new RegExp(zendeskUrl.replace(/\//g, '\\/'), 'g'), urlData.publicUrl)
+              migratedImages++
+              continue
+            }
           }
 
           const imgRes = await fetch(zendeskUrl, { headers: zHeaders() })
@@ -74,10 +75,7 @@ export async function GET(req: NextRequest) {
 
           const { error: uploadError } = await supabaseAdmin.storage
             .from('article-images')
-            .upload(fileName, buffer, {
-              contentType,
-              upsert: true,
-            })
+            .upload(fileName, buffer, { contentType, upsert: true })
 
           if (uploadError) {
             errors.push(`Error subiendo ${imageId}: ${uploadError.message}`)
@@ -88,8 +86,7 @@ export async function GET(req: NextRequest) {
             .from('article-images')
             .getPublicUrl(fileName)
 
-          newBody = newBody.replace(new RegExp(`/guide-media/${imageId}`, 'g'), urlData.publicUrl)
-          newBody = newBody.replace(new RegExp(`https://${ZENDESK_SUBDOMAIN}.zendesk.com/guide-media/${imageId}`, 'g'), urlData.publicUrl)
+          newBody = newBody.replace(new RegExp(zendeskUrl.replace(/\//g, '\\/'), 'g'), urlData.publicUrl)
           migratedImages++
           articleUpdated = true
 
