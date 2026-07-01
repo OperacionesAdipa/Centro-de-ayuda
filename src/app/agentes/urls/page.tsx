@@ -18,6 +18,8 @@ interface Article {
   id: number
   title: string
   status: string
+  category_name: string
+  section_name: string
 }
 
 export default function UrlsPage() {
@@ -32,13 +34,13 @@ export default function UrlsPage() {
   const [regenerating, setRegenerating] = useState<number | null>(null)
   const [regenerateResult, setRegenerateResult] = useState<Record<number, string>>({})
   const [expandedUrl, setExpandedUrl] = useState<number | null>(null)
-  const [linkingArticle, setLinkingArticle] = useState<number | null>(null)
-  const [selectedArticle, setSelectedArticle] = useState<number>(0)
+  const [linkingUrl, setLinkingUrl] = useState<number | null>(null)
+  const [articleSearch, setArticleSearch] = useState('')
+  const [selectedArticles, setSelectedArticles] = useState<number[]>([])
 
   useEffect(() => {
     const token = localStorage.getItem('agent_token')
     if (!token) { router.push('/acceso'); return }
-
     fetch('/api/agent/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -106,15 +108,17 @@ export default function UrlsPage() {
     setRegenerating(null)
   }
 
-  async function linkArticle(urlId: number) {
-    if (!selectedArticle) return
-    await fetch(`/api/agent/urls/${urlId}/articles`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ article_id: selectedArticle }),
-    })
-    setLinkingArticle(null)
-    setSelectedArticle(0)
+  async function linkArticles(urlId: number) {
+    for (const articleId of selectedArticles) {
+      await fetch(`/api/agent/urls/${urlId}/articles`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ article_id: articleId }),
+      })
+    }
+    setLinkingUrl(null)
+    setSelectedArticles([])
+    setArticleSearch('')
     await loadData()
   }
 
@@ -125,6 +129,18 @@ export default function UrlsPage() {
       body: JSON.stringify({ article_id: articleId }),
     })
     await loadData()
+  }
+
+  function toggleArticle(id: number) {
+    setSelectedArticles(prev =>
+      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
+    )
+  }
+
+  function openLinking(urlId: number) {
+    setLinkingUrl(urlId)
+    setSelectedArticles([])
+    setArticleSearch('')
   }
 
   if (loading) return <div className="agent-loading">Cargando...</div>
@@ -144,112 +160,143 @@ export default function UrlsPage() {
       <div className="agent-body">
         <div className="agent-side-card" style={{ marginBottom: 24 }}>
           <div className="agent-side-title">Agregar nueva URL</div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <input className="agent-input" type="url" placeholder="https://adipa.cl/..." value={newUrl} onChange={(e) => setNewUrl(e.target.value)} style={{ flex: 2, minWidth: 200 }} />
-            <input className="agent-input" type="text" placeholder="Nombre descriptivo" value={newName} onChange={(e) => setNewName(e.target.value)} style={{ flex: 1, minWidth: 150 }} />
-            <input className="agent-input" type="text" placeholder="Descripción (opcional)" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} style={{ flex: 1, minWidth: 150 }} />
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: 10 }}>
+            <input className="agent-input" type="url" placeholder="https://adipa.cl/..." value={newUrl} onChange={(e) => setNewUrl(e.target.value)} />
+            <input className="agent-input" type="text" placeholder="Nombre descriptivo" value={newName} onChange={(e) => setNewName(e.target.value)} />
+            <input className="agent-input" type="text" placeholder="Descripción (opcional)" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} />
             <button className="agent-nav-btn primary" onClick={addUrl} disabled={adding}>
               {adding ? 'Agregando...' : '+ Agregar'}
             </button>
           </div>
         </div>
 
-        <div className="agent-table-wrap">
-          <table className="agent-table">
-            <thead>
-              <tr>
-                <th>URL</th>
-                <th>Artículos vinculados</th>
-                <th>Última actualización</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {urls.map((u) => (
-                <>
-                  <tr key={u.id}>
-                    <td>
-                      <div style={{ fontWeight: 500, color: 'var(--dark)', marginBottom: 2 }}>{u.name}</div>
-                      <a href={u.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--purple)' }}>{u.url}</a>
-                      {u.description && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{u.description}</div>}
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span className="agent-tag">{u.articles.length} artículo(s)</span>
-                        <button
-                          className="agent-action-btn"
-                          onClick={() => setExpandedUrl(expandedUrl === u.id ? null : u.id)}
-                        >
-                          {expandedUrl === u.id ? 'Ocultar' : 'Ver'}
-                        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {urls.length === 0 && <div className="agent-empty">No hay URLs registradas aún.</div>}
+          {urls.map((u) => (
+            <div key={u.id} className="agent-side-card" style={{ gap: 0, padding: 0, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--dark)', marginBottom: 2 }}>{u.name}</div>
+                  <a href={u.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--purple)' }}>{u.url}</a>
+                  {u.description && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{u.description}</div>}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  <span className="agent-tag">{u.articles.length} artículo(s)</span>
+                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                    {u.last_fetched_at ? `Actualizado ${new Date(u.last_fetched_at).toLocaleDateString('es-CL')}` : 'Nunca actualizado'}
+                  </span>
+                  <button
+                    className="agent-nav-btn primary"
+                    onClick={() => regenerate(u.id)}
+                    disabled={regenerating === u.id || u.articles.length === 0}
+                    style={{ fontSize: 12, padding: '5px 12px' }}
+                    title={u.articles.length === 0 ? 'Vincula artículos primero' : ''}
+                  >
+                    {regenerating === u.id ? 'Actualizando...' : '🔄 Actualizar artículos'}
+                  </button>
+                  <button
+                    className="agent-action-btn"
+                    onClick={() => setExpandedUrl(expandedUrl === u.id ? null : u.id)}
+                  >
+                    {expandedUrl === u.id ? 'Ocultar' : 'Ver artículos'}
+                  </button>
+                  <button className="agent-url-remove" onClick={() => deleteUrl(u.id)} title="Eliminar URL">✕</button>
+                </div>
+              </div>
+
+              {regenerateResult[u.id] && (
+                <div style={{ padding: '8px 18px', fontSize: 13, background: regenerateResult[u.id].startsWith('✅') ? '#eaf3de' : '#fcebeb', color: regenerateResult[u.id].startsWith('✅') ? '#3b6d11' : '#a32d2d' }}>
+                  {regenerateResult[u.id]}
+                </div>
+              )}
+
+              {expandedUrl === u.id && (
+                <div style={{ borderTop: '0.5px solid var(--border)', padding: '14px 18px', background: '#f8f8fc' }}>
+                  <div style={{ fontWeight: 500, fontSize: 13, marginBottom: 10 }}>Artículos vinculados:</div>
+
+                  {u.articles.length === 0 ? (
+                    <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>No hay artículos vinculados aún.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+                      {u.articles.map((art) => (
+                        <div key={art.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', padding: '8px 12px', borderRadius: 8, border: '0.5px solid var(--border)' }}>
+                          <span style={{ fontSize: 13, flex: 1 }}>{art.title}</span>
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <span className={`agent-status ${art.status}`}>
+                              {art.status === 'published' ? 'Publicado' : art.status === 'draft' ? 'Borrador' : 'Pendiente'}
+                            </span>
+                            <Link href={`/agentes/editar/${art.id}`} className="agent-action-btn" style={{ fontSize: 11 }}>Editar</Link>
+                            <button className="agent-url-remove" onClick={() => unlinkArticle(u.id, art.id)} title="Desvincular">✕</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {linkingUrl === u.id ? (
+                    <div className="agent-side-card" style={{ background: '#fff' }}>
+                      <div style={{ fontWeight: 500, fontSize: 13, marginBottom: 8 }}>
+                        Selecciona artículos para vincular
+                        {selectedArticles.length > 0 && <span className="agent-tag" style={{ marginLeft: 8 }}>{selectedArticles.length} seleccionados</span>}
                       </div>
-                    </td>
-                    <td style={{ fontSize: 12, color: 'var(--muted)' }}>
-                      {u.last_fetched_at
-                        ? new Date(u.last_fetched_at).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-                        : 'Nunca'}
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <input
+                        className="agent-search"
+                        type="text"
+                        placeholder="Buscar artículo por título..."
+                        value={articleSearch}
+                        onChange={(e) => setArticleSearch(e.target.value)}
+                        style={{ marginBottom: 10 }}
+                        autoFocus
+                      />
+                      <div style={{ maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {articles
+                          .filter(a =>
+                            !u.articles.some(ua => ua.id === a.id) &&
+                            a.title.toLowerCase().includes(articleSearch.toLowerCase())
+                          )
+                          .map(a => (
+                            <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', background: selectedArticles.includes(a.id) ? 'var(--lp)' : 'transparent', border: `0.5px solid ${selectedArticles.includes(a.id) ? 'var(--purple)' : 'transparent'}` }}>
+                              <input
+                                type="checkbox"
+                                checked={selectedArticles.includes(a.id)}
+                                onChange={() => toggleArticle(a.id)}
+                              />
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: 13, color: 'var(--dark)' }}>{a.title}</div>
+                                <div style={{ fontSize: 11, color: 'var(--muted)' }}>{a.category_name} · {a.section_name}</div>
+                              </div>
+                              <span className={`agent-status ${a.status}`} style={{ fontSize: 11 }}>
+                                {a.status === 'published' ? 'Publicado' : a.status === 'draft' ? 'Borrador' : 'Pendiente'}
+                              </span>
+                            </label>
+                          ))
+                        }
+                        {articles.filter(a => !u.articles.some(ua => ua.id === a.id) && a.title.toLowerCase().includes(articleSearch.toLowerCase())).length === 0 && (
+                          <p style={{ fontSize: 13, color: 'var(--muted)', padding: '10px 0', textAlign: 'center' }}>No se encontraron artículos.</p>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                         <button
                           className="agent-nav-btn primary"
-                          onClick={() => regenerate(u.id)}
-                          disabled={regenerating === u.id || u.articles.length === 0}
-                          style={{ fontSize: 12, padding: '5px 10px' }}
+                          onClick={() => linkArticles(u.id)}
+                          disabled={selectedArticles.length === 0}
                         >
-                          {regenerating === u.id ? 'Actualizando...' : '🔄 Actualizar artículos'}
+                          Vincular {selectedArticles.length > 0 ? `(${selectedArticles.length})` : ''}
                         </button>
-                        <button className="agent-action-btn" onClick={() => deleteUrl(u.id)}>Eliminar</button>
+                        <button className="agent-nav-btn" onClick={() => { setLinkingUrl(null); setSelectedArticles([]); setArticleSearch('') }}>
+                          Cancelar
+                        </button>
                       </div>
-                      {regenerateResult[u.id] && (
-                        <div style={{ fontSize: 12, marginTop: 6, color: regenerateResult[u.id].startsWith('✅') ? '#3b6d11' : '#e24b4a' }}>
-                          {regenerateResult[u.id]}
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                  {expandedUrl === u.id && (
-                    <tr key={`${u.id}-expanded`}>
-                      <td colSpan={4} style={{ background: '#f8f8fc', padding: '12px 16px' }}>
-                        <div style={{ marginBottom: 10, fontWeight: 500, fontSize: 13 }}>Artículos vinculados a esta URL:</div>
-                        {u.articles.length === 0 ? (
-                          <p style={{ fontSize: 13, color: 'var(--muted)' }}>No hay artículos vinculados aún.</p>
-                        ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
-                            {u.articles.map((art) => (
-                              <div key={art.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', padding: '8px 12px', borderRadius: 8, border: '0.5px solid var(--border)' }}>
-                                <span style={{ fontSize: 13 }}>{art.title}</span>
-                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                  <span className={`agent-status ${art.status}`}>{art.status === 'published' ? 'Publicado' : art.status === 'draft' ? 'Borrador' : 'Pendiente'}</span>
-                                  <button className="agent-url-remove" onClick={() => unlinkArticle(u.id, art.id)}>✕</button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {linkingArticle === u.id ? (
-                          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                            <select className="agent-select" value={selectedArticle} onChange={(e) => setSelectedArticle(Number(e.target.value))}>
-                              <option value={0}>Seleccionar artículo...</option>
-                              {articles
-                                .filter(a => !u.articles.some(ua => ua.id === a.id))
-                                .map(a => <option key={a.id} value={a.id}>{a.title}</option>)
-                              }
-                            </select>
-                            <button className="agent-nav-btn primary" onClick={() => linkArticle(u.id)} style={{ fontSize: 12 }}>Vincular</button>
-                            <button className="agent-nav-btn" onClick={() => setLinkingArticle(null)} style={{ fontSize: 12 }}>Cancelar</button>
-                          </div>
-                        ) : (
-                          <button className="agent-action-btn" onClick={() => setLinkingArticle(u.id)}>+ Vincular artículo</button>
-                        )}
-                      </td>
-                    </tr>
+                    </div>
+                  ) : (
+                    <button className="agent-action-btn" onClick={() => openLinking(u.id)}>
+                      + Vincular artículos
+                    </button>
                   )}
-                </>
-              ))}
-            </tbody>
-          </table>
-          {urls.length === 0 && <div className="agent-empty">No hay URLs registradas aún.</div>}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </div>
