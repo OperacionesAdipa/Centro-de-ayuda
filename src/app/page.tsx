@@ -1,11 +1,5 @@
 import Link from 'next/link'
-import {
-  getCategories,
-  getSections,
-  getArticles,
-  slugify,
-  ZArticle,
-} from '@/lib/zendesk'
+import { getCategories, getSections, getArticles, slugify, extractTagsFromBody, CATEGORY_ICONS } from '@/lib/supabaseQueries'
 import { FaqSection } from '@/components/FaqSection'
 import { CountryHero } from '@/components/CountryHero'
 import { ContactSection } from '@/components/ContactSection'
@@ -14,7 +8,7 @@ import { VideoTutorials } from '@/components/VideoTutorials'
 import { RecentlyViewed } from '@/components/RecentlyViewed'
 import { HelpSection } from '@/components/HelpSection'
 
-export const revalidate = 300
+export const revalidate = 60
 
 export default async function HomePage() {
   const [categories, allSections, allArticles] = await Promise.all([
@@ -29,12 +23,12 @@ export default async function HomePage() {
 
   const featured = allArticles.filter((a) => a.promoted)
   const display = featured.length > 0 ? featured : topViewed
-  const sectionMap = Object.fromEntries(allSections.map((s) => [s.id, s]))
+  const sectionMap = Object.fromEntries(allSections.map((s: any) => [s.id, s]))
 
-  const catArticleMap: Record<number, ZArticle[]> = {}
+  const catArticleMap: Record<number, any[]> = {}
   for (const cat of categories) {
-    const sections = allSections.filter((s) => s.category_id === cat.id)
-    const arts = allArticles.filter((a) => sections.some((s) => s.id === a.section_id))
+    const sections = allSections.filter((s: any) => s.category_id === cat.id)
+    const arts = allArticles.filter((a: any) => sections.some((s: any) => s.id === a.section_id))
     catArticleMap[cat.id] = arts
   }
 
@@ -74,7 +68,7 @@ export default async function HomePage() {
           </h2>
         </div>
         <div className="articles-ranked">
-          {display.map((art, i) => {
+          {display.map((art: any, i: number) => {
             const section = sectionMap[art.section_id]
             const views = art.view_count ?? 0
             return (
