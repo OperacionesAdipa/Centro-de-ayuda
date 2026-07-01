@@ -116,6 +116,19 @@ export async function POST(req: NextRequest) {
     }
 
     const html = await pageRes.text()
+
+    const linkRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi
+    const links: { text: string; href: string }[] = []
+    let linkMatch
+    while ((linkMatch = linkRegex.exec(html)) !== null) {
+      const href = linkMatch[1]
+      const text = linkMatch[2].replace(/<[^>]+>/g, '').trim()
+      if (text && href && !href.startsWith('#') && !href.startsWith('javascript')) {
+        const fullHref = href.startsWith('http') ? href : `${new URL(urlData.url).origin}${href}`
+        links.push({ text, href: fullHref })
+      }
+    }
+
     const cleanText = html
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
@@ -126,6 +139,8 @@ export async function POST(req: NextRequest) {
       .replace(/\s+/g, ' ')
       .trim()
       .slice(0, 8000)
+
+    const linksText = links.slice(0, 30).map(l => `- "${l.text}" → ${l.href}`).join('\n')
 
     const { data: articleUrlData } = await supabaseAdmin
       .from('article_source_urls')
@@ -222,6 +237,9 @@ ${otherArticleTitles.map((t: string, i: number) => `${i + 1}. ${t}`).join('\n')}
 CONTENIDO ACTUALIZADO DE LA PÁGINA DE REFERENCIA:
 ${cleanText}
 
+LINKS DISPONIBLES EN LA PÁGINA (úsalos cuando hagas referencia a algo, usa el HTML <a href="URL">texto</a>):
+${linksText}
+
 ${screenshot ? `IMAGEN DISPONIBLE (úsala donde sea más relevante para ilustrar el proceso):
 <img src="${screenshot}" alt="Captura de pantalla" style="max-width:100%; border-radius:8px; margin:12px 0; border: 1px solid #e5e7eb;">` : ''}
 
@@ -231,6 +249,7 @@ INSTRUCCIONES:
 - Escribe en español latinoamericano, tono amigable y claro
 - Usa formato HTML con <p>, <strong>, <ul>, <li>, <ol> según corresponda
 - Si hay pasos a seguir, usa una lista numerada <ol>
+- Cuando hagas referencia a algo de la página, incluye el hipervínculo correspondiente usando <a href="URL">texto</a>
 - ${screenshot ? 'Incluye la imagen en el lugar más relevante del artículo' : 'No incluyas imágenes'}
 - Mantén el artículo conciso y al punto
 - NO incluyas el título en el HTML
