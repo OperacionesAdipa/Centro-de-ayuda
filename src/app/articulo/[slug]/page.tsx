@@ -1,10 +1,9 @@
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { getArticle, getArticles, getSections, getCategories, slugify } from '@/lib/zendesk'
+import { getArticle, getArticles, getSections, getCategories, slugify } from '@/lib/supabaseQueries'
 import { ArticleClient } from '@/components/ArticleClient'
 import { ArticleSidebar } from '@/components/ArticleSidebar'
 
-export const revalidate = 300
+export const revalidate = 60
 
 export default async function ArticlePage({ params }: { params: { slug: string } }) {
   const articleId = parseInt(params.slug.split('-')[0])
@@ -18,12 +17,12 @@ export default async function ArticlePage({ params }: { params: { slug: string }
     getCategories(),
   ])
 
-  const section = allSections.find((s) => s.id === article.section_id)
-  const category = section ? categories.find((c) => c.id === section.category_id) : null
+  const section = allSections.find((s: any) => s.id === article.section_id)
+  const category = section ? categories.find((c: any) => c.id === section.category_id) : null
   const allArticles = await getArticles()
 
   const relatedArticles = section
-    ? allArticles.filter((a) => a.section_id === section.id && a.id !== article.id).slice(0, 3)
+    ? allArticles.filter((a: any) => a.section_id === section.id && a.id !== article.id).slice(0, 3)
     : []
 
   const updatedDate = new Date(article.updated_at).toLocaleDateString('es-CL', {
