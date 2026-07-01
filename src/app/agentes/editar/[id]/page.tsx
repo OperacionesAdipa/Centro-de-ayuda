@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { RichEditor } from '@/components/RichEditor'
 
 interface Article {
   id: number
@@ -65,7 +66,11 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
     const artData = await artRes.json()
     const catData = await catRes.json()
     const secData = await secRes.json()
-    setArticle({ ...artData.article, source_urls: artData.article.source_urls ?? [], label_names: artData.article.label_names ?? [] })
+    setArticle({
+      ...artData.article,
+      source_urls: artData.article.source_urls ?? [],
+      label_names: artData.article.label_names ?? [],
+    })
     setCategories(catData.categories ?? [])
     setSections(secData.sections ?? [])
     setLoading(false)
@@ -128,9 +133,7 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
         </div>
       </div>
 
-      {saved && (
-        <div className="agent-saved-msg">Guardado correctamente</div>
-      )}
+      {saved && <div className="agent-saved-msg">Guardado correctamente</div>}
 
       <div className="agent-editor-wrap">
         <div className="agent-editor-main">
@@ -145,20 +148,10 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
           </div>
 
           <div className="agent-field">
-            <label className="agent-label">Contenido (HTML)</label>
-            <textarea
-              className="agent-textarea"
-              value={article.body}
-              onChange={(e) => setArticle({ ...article, body: e.target.value })}
-              rows={20}
-            />
-          </div>
-
-          <div className="agent-field">
-            <label className="agent-label">Vista previa</label>
-            <div
-              className="agent-preview article-body"
-              dangerouslySetInnerHTML={{ __html: article.body }}
+            <label className="agent-label">Contenido</label>
+            <RichEditor
+              content={article.body}
+              onChange={(html) => setArticle({ ...article, body: html })}
             />
           </div>
         </div>
