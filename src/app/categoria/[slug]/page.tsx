@@ -1,20 +1,11 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import {
-  getCategories,
-  getSections,
-  getArticles,
-  slugify,
-  CATEGORY_ICONS,
-  ZArticle,
-  ZSection,
-  extractTagsFromBody,
-} from '@/lib/zendesk'
+import { getCategories, getSections, getArticles, slugify, CATEGORY_ICONS } from '@/lib/supabaseQueries'
 import { CategoryArticles } from '@/components/CategoryArticles'
 import { ArticleSidebar } from '@/components/ArticleSidebar'
 import { SectionCardsGrid } from '@/components/SectionCardsGrid'
 
-export const revalidate = 300
+export const revalidate = 60
 
 const UPDATED_ICONS: Record<string, string> = {
   'Admisión y Matrícula': '📋',
@@ -35,15 +26,14 @@ export default async function CategoryPage({ params }: { params: { slug: string 
     getSections(),
   ])
 
-  const category = categories.find((c) => c.id === categoryId)
+  const category = categories.find((c: any) => c.id === categoryId)
   if (!category) notFound()
 
   const articlesPerSection = await Promise.all(
-    sections.map((s) => getArticles(s.id).then((arts) => ({ section: s, arts })))
+    sections.map((s: any) => getArticles(s.id).then((arts) => ({ section: s, arts })))
   )
 
   const allArticles = await getArticles()
-
   const totalArticles = articlesPerSection.reduce((sum, { arts }) => sum + arts.length, 0)
 
   return (
@@ -58,7 +48,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
         <div className="cat-page-header">
           <div style={{ marginBottom: 16 }}>
             <Link href="/" className="back-btn-top back-btn-solid">
-              ← Volver al inicio
+              Volver al inicio
             </Link>
           </div>
           <div className="cat-page-title-row">
@@ -70,7 +60,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
               {category.description && (
                 <div className="cat-page-desc">{category.description}</div>
               )}
-              <div className="cat-page-desc" id="cat-section-count">
+              <div className="cat-page-desc">
                 {sections.length} secciones · {totalArticles} artículos
               </div>
             </div>
