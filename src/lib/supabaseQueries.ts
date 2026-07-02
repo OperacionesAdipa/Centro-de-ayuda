@@ -89,6 +89,13 @@ export const CATEGORY_ICONS: Record<string, string> = {
   'Preguntas frecuentes': '❓',
 }
 
+const COUNTRY_TO_LABEL: Record<string, string> = {
+  'Chile': 'pais_chile',
+  'México': 'pais_mexico',
+  'Colombia': 'pais_colombia',
+  'Argentina': 'pais_argentina',
+}
+
 export function extractTagsFromBody(body: string): { countries: string[]; isFaq: boolean; cleanBody: string } {
   const countries: string[] = []
   let isFaq = false
@@ -123,25 +130,35 @@ export function extractTagsFromBody(body: string): { countries: string[]; isFaq:
   return { countries, isFaq, cleanBody }
 }
 
+export function filterArticlesByCountry(articles: any[], country: string): any[] {
+  return articles.filter((art) => {
+    const labelNames: string[] = art.label_names ?? []
+
+    const hasNewLabels = labelNames.some(l => l.startsWith('pais_'))
+
+    if (hasNewLabels) {
+      if (labelNames.includes('pais_todos')) return true
+      const countryLabel = COUNTRY_TO_LABEL[country]
+      return countryLabel ? labelNames.includes(countryLabel) : false
+    }
+
+    const { countries } = extractTagsFromBody(art.body ?? '')
+    if (countries.length === 0) return true
+    if (countries.includes('Todos')) return true
+    return countries.includes(country)
+  })
+}
+
+export function isArticleFaq(article: any): boolean {
+  const labelNames: string[] = article.label_names ?? []
+  if (labelNames.includes('faq')) return true
+  const { isFaq } = extractTagsFromBody(article.body ?? '')
+  return isFaq
+}
+
 export function fixMediaUrls(html: string): string {
   return html.replace(
     /https:\/\/adipa\.zendesk\.com\/guide-media\//g,
     '/media/'
   )
-}
-
-export function filterArticlesByCountry(articles: any[], country: string): any[] {
-  return articles.filter((art) => {
-    const labelNames = art.label_names ?? []
-    if (labelNames.length === 0) return true
-
-    const hasCountryTag = labelNames.some((l: string) =>
-      l.startsWith('pais_') || l === 'pais_todos'
-    )
-    if (!hasCountryTag) return true
-    if (labelNames.includes('pais_todos')) return true
-
-    const countryTag = `pais_${country.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace('é', 'e')}`
-    return labelNames.includes(countryTag)
-  })
 }
