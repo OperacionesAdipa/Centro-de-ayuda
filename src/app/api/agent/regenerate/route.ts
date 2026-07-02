@@ -16,9 +16,7 @@ async function takeTargetedScreenshot(url: string, targetText: string): Promise<
           module.exports = async ({ page }) => {
             await page.goto('${url}', { waitUntil: 'networkidle2', timeout: 30000 });
             await page.setViewport({ width: 1280, height: 800 });
-
             const targetText = ${JSON.stringify(targetText)};
-
             const element = await page.evaluateHandle((text) => {
               const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
               let node;
@@ -29,7 +27,6 @@ async function takeTargetedScreenshot(url: string, targetText: string): Promise<
               }
               return null;
             }, targetText);
-
             if (element && element.asElement()) {
               await element.asElement().evaluate((el) => {
                 el.style.outline = '3px solid #704EFD';
@@ -38,9 +35,7 @@ async function takeTargetedScreenshot(url: string, targetText: string): Promise<
                 el.style.borderRadius = '4px';
                 el.scrollIntoView({ behavior: 'instant', block: 'center' });
               });
-
               await page.waitForTimeout(500);
-
               const box = await element.asElement().boundingBox();
               if (box) {
                 const padding = 80;
@@ -53,7 +48,6 @@ async function takeTargetedScreenshot(url: string, targetText: string): Promise<
                 return await page.screenshot({ type: 'jpeg', quality: 85, clip });
               }
             }
-
             return await page.screenshot({ type: 'jpeg', quality: 85, clip: { x: 0, y: 0, width: 1280, height: 600 } });
           };
         `,
@@ -81,12 +75,78 @@ async function takeTargetedScreenshot(url: string, targetText: string): Promise<
   }
 }
 
+async function getNavigationPath(url: string): Promise<string | null> {
+  try {
+    const urlObj = new URL(url)
+    const origin = urlObj.origin
+    const path = urlObj.pathname
+
+    const homeRes = await fetch(origin, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ADIPA-Bot/1.0)' },
+    })
+    if (!homeRes.ok) return null
+
+    const homeHtml = await homeRes.text()
+    const navHtml = homeHtml
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .slice(0, 5000)
+
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY!,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 300,
+        messages: [{
+          role: 'user',
+          content: `Analiza la navegación de este sitio web y determina cómo llegar a la URL: ${url}
+
+HTML del sitio principal (${origin}):
+${navHtml}
+
+Responde ÚNICAMENTE con los pasos de navegación en formato simple, por ejemplo:
+"Haz clic en 'Recursos' en el menú principal, luego selecciona 'Glosario'"
+
+Si no puedes determinar la ruta, responde: "none"`,
+        }],
+      }),
+    })
+
+    const claudeData = await claudeRes.json()
+    const navPath = claudeData.content?.[0]?.text?.trim()
+    return navPath === 'none' ? null : navPath
+  } catch {
+    return null
+  }
+}
+
 function cleanHtml(text: string): string {
   return text
     .replace(/^```html\s*/i, '')
     .replace(/^```\s*/i, '')
     .replace(/\s*```$/i, '')
     .trim()
+}
+
+function getAdipaUrlForCountry(url: string, countryLabel: string): string {
+  const countryDomains: Record<string, string> = {
+    pais_chile: 'adipa.cl',
+    pais_mexico: 'adipa.mx',
+    pais_colombia: 'adipa.co',
+    pais_argentina: 'adipa.ar',
+  }
+  const domain = countryDomains[countryLabel]
+  if (!domain) return url
+  return url
+    .replace('adipa.cl', domain)
+    .replace('adipa.mx', domain)
+    .replace('adipa.co', domain)
+    .replace('adipa.ar', domain)
 }
 
 export async function POST(req: NextRequest) {
@@ -123,13 +183,7 @@ export async function POST(req: NextRequest) {
     while ((linkMatch = linkRegex.exec(html)) !== null) {
       const href = linkMatch[1]
       const text = linkMatch[2].replace(/<[^>]+>/g, '').trim()
-      if (
-        text &&
-        href &&
-        !href.startsWith('#') &&
-        !href.startsWith('javascript') &&
-        !href.includes('zendesk.com')
-      ) {
+      if (text && href && !href.startsWith('#') && !href.startsWith('javascript') && !href.includes('zendesk.com')) {
         const fullHref = href.startsWith('http') ? href : `${new URL(urlData.url).origin}${href}`
         links.push({ text, href: fullHref })
       }
@@ -152,6 +206,8 @@ export async function POST(req: NextRequest) {
 
     const linksText = filteredLinks.map(l => `- "${l.text}" → ${l.href}`).join('\n')
 
+    const navigationPath = await getNavigationPath(urlData.url)
+
     const { data: articleUrlData } = await supabaseAdmin
       .from('article_source_urls')
       .select('article_id')
@@ -173,6 +229,9 @@ export async function POST(req: NextRequest) {
 
     for (const article of articles ?? []) {
       const otherArticleTitles = allArticleTitles.filter((t: string) => t !== article.title)
+
+      const countryLabel = (article.label_names ?? []).find((l: string) => l.startsWith('pais_')) ?? 'pais_chile'
+      const localizedUrl = getAdipaUrlForCountry(urlData.url, countryLabel)
 
       const analysisRes = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -197,8 +256,8 @@ Responde en JSON con este formato exacto:
   "targetText": "texto exacto que aparece en la página y debe ser resaltado en el screenshot, o null si no necesita screenshot"
 }
 
-needsScreenshot debe ser true SOLO si el artículo explica un proceso visual paso a paso (ej: hacer clic en un botón, llenar un formulario, navegar por una interfaz).
-needsScreenshot debe ser false si el artículo es informativo (ej: qué es X, beneficios de X, preguntas conceptuales).
+needsScreenshot debe ser true SOLO si el artículo explica un proceso visual paso a paso.
+needsScreenshot debe ser false si el artículo es informativo.
 
 Responde ÚNICAMENTE con el JSON, sin explicaciones.`,
           }],
@@ -247,10 +306,16 @@ ${otherArticleTitles.map((t: string, i: number) => `${i + 1}. ${t}`).join('\n')}
 CONTENIDO ACTUALIZADO DE LA PÁGINA DE REFERENCIA:
 ${cleanText}
 
-LINKS DISPONIBLES EN LA PÁGINA (úsalos cuando hagas referencia a algo, usa el HTML <a href="URL">texto</a>):
+URL DE REFERENCIA PARA ESTE PAÍS: ${localizedUrl}
+
+${navigationPath ? `CÓMO LLEGAR A ESTA PÁGINA DESDE EL SITIO PRINCIPAL:
+${navigationPath}
+Incluye estos pasos de navegación al inicio del artículo si es relevante.` : ''}
+
+LINKS DISPONIBLES EN LA PÁGINA (úsalos cuando hagas referencia a algo):
 ${linksText}
 
-${screenshot ? `IMAGEN DISPONIBLE (úsala donde sea más relevante para ilustrar el proceso):
+${screenshot ? `IMAGEN DISPONIBLE (úsala donde sea más relevante):
 <img src="${screenshot}" alt="Captura de pantalla" style="max-width:100%; border-radius:8px; margin:12px 0; border: 1px solid #e5e7eb;">` : ''}
 
 INSTRUCCIONES:
@@ -259,10 +324,10 @@ INSTRUCCIONES:
 - Escribe en español latinoamericano, tono amigable y claro
 - Usa formato HTML con <p>, <strong>, <ul>, <li>, <ol> según corresponda
 - Si hay pasos a seguir, usa una lista numerada <ol>
-- Cuando hagas referencia a algo de la página, incluye el hipervínculo correspondiente usando <a href="URL">texto</a>
-- NUNCA incluyas links que contengan "zendesk.com" — si encuentras alguno ignóralo completamente
+- Cuando hagas referencia al sitio web usa siempre: ${localizedUrl}
+- Cuando hagas referencia a algo de la página, incluye el hipervínculo usando <a href="URL">texto</a>
+- NUNCA incluyas links que contengan "zendesk.com"
 - ${screenshot ? 'Incluye la imagen en el lugar más relevante del artículo' : 'No incluyas imágenes'}
-- Mantén el artículo conciso y al punto
 - NO incluyas el título en el HTML
 - Responde ÚNICAMENTE con HTML puro, sin bloques de código, sin markdown, sin \`\`\``,
           }],
