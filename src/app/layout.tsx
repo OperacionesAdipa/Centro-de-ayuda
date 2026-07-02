@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import { ConditionalNav } from '@/components/ConditionalNav'
+import { Navbar } from '@/components/Navbar'
+import { WhatsAppButton } from '@/components/WhatsAppButton'
 
 export const metadata: Metadata = {
   title: 'Centro de Ayuda ADIPA',
@@ -11,8 +12,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <body>
-        <ConditionalNav />
+        <Navbar />
         {children}
+        <WhatsAppButton />
       </body>
     </html>
   )
