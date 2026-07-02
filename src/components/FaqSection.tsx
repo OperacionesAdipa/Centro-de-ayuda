@@ -1,59 +1,53 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useCountry } from '@/lib/useCountry'
-import { ZArticle, extractTagsFromBody } from '@/lib/zendesk'
+import { slugify, filterArticlesByCountry, isArticleFaq } from '@/lib/supabaseQueries'
+import { replaceMexicoTerms } from '@/lib/countryUtils'
 
-export function FaqSection({ articles }: { articles: ZArticle[] }) {
+interface Props {
+  articles: any[]
+}
+
+export function FaqSection({ articles }: Props) {
   const { country } = useCountry()
-  const [showAll, setShowAll] = useState(false)
+  const [openId, setOpenId] = useState<number | null>(null)
 
-  const filtered = articles.filter((art) => {
-    const { countries, isFaq } = extractTagsFromBody(art.body ?? '')
-    if (!isFaq) return false
-    if (countries.length === 0) return true
-    if (countries.includes('Todos')) return true
-    return countries.includes(country)
-  })
+  const faqArticles = articles
+    .filter((art) => isArticleFaq(art))
+    .filter((art) => filterArticlesByCountry([art], country).length > 0)
+    .slice(0, 8)
 
-  const fallback = articles.filter((art) => {
-    const { countries } = extractTagsFromBody(art.body ?? '')
-    if (countries.length === 0) return true
-    if (countries.includes('Todos')) return true
-    return countries.includes(country)
-  }).slice(0, 10)
-
-  const display = filtered.length > 0 ? filtered : fallback
-  const visible = showAll ? display : display.slice(0, 5)
+  if (faqArticles.length === 0) return null
 
   return (
-    <>
-      <div className="faq-list">
-        {visible.map((art) => {
-          const { cleanBody } = extractTagsFromBody(art.body ?? '')
-          return (
-            <details key={art.id} className="faq-item">
-              <summary className="faq-question">
-                <span>{art.title}</span>
-                <span className="faq-chevron">▾</span>
-              </summary>
-              <div
-                className="faq-answer"
-                dangerouslySetInnerHTML={{
-                  __html: cleanBody.replace(/<[^>]*>/g, '').slice(0, 300) + '...',
-                }}
-              />
-            </details>
-          )
-        })}
-      </div>
-      {display.length > 5 && (
-        <div style={{ textAlign: 'center', marginTop: 12 }}>
-          <button className="faq-show-more" onClick={() => setShowAll(!showAll)}>
-            {showAll ? 'Ver menos' : `Ver más preguntas frecuentes (${display.length - 5} más)`}
+    <div className="faq-list">
+      {faqArticles.map((art) => (
+        <div key={art.id} className={`faq-item ${openId === art.id ? 'open' : ''}`}>
+          <button
+            className="faq-question"
+            onClick={() => setOpenId(openId === art.id ? null : art.id)}
+          >
+            <span>{replaceMexicoTerms(art.title, country)}</span>
+            <span className="faq-icon">{openId === art.id ? '▾' : '›'}</span>
           </button>
+          {openId === art.id && (
+            <div className="faq-answer">
+              <div
+                className="article-body"
+                dangerouslySetInnerHTML={{ __html: art.body?.slice(0, 500) ?? '' }}
+              />
+              <Link
+                href={`/articulo/${art.id}-${slugify(art.title)}`}
+                style={{ fontSize: 13, color: 'var(--purple)', marginTop: 8, display: 'inline-block' }}
+              >
+                Ver artículo completo →
+              </Link>
+            </div>
+          )}
         </div>
-      )}
-    </>
+      ))}
+    </div>
   )
 }
