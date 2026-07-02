@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useCountry } from '@/lib/useCountry'
-import { ZArticle, slugify, extractTagsFromBody } from '@/lib/zendesk'
+import { slugify, filterArticlesByCountry } from '@/lib/supabaseQueries'
 import Link from 'next/link'
 
 interface VideoItem {
@@ -11,18 +11,11 @@ interface VideoItem {
   embedUrl: string
 }
 
-function extractVideos(articles: ZArticle[], country: string): VideoItem[] {
+function extractVideos(articles: any[], country: string): VideoItem[] {
   const items: VideoItem[] = []
+  const filtered = filterArticlesByCountry(articles, country)
 
-  for (const art of articles) {
-    const { countries } = extractTagsFromBody(art.body ?? '')
-    const isVisible =
-      countries.length === 0 ||
-      countries.includes('Todos') ||
-      countries.includes(country)
-
-    if (!isVisible) continue
-
+  for (const art of filtered) {
     const iframeRegex = /<iframe[^>]+src=["']([^"']+)["'][^>]*>/gi
     let match
     while ((match = iframeRegex.exec(art.body ?? '')) !== null) {
@@ -50,10 +43,9 @@ function extractVideos(articles: ZArticle[], country: string): VideoItem[] {
   return items
 }
 
-export function VideoTutorialsGrid({ articles }: { articles: ZArticle[] }) {
+export function VideoTutorialsGrid({ articles }: { articles: any[] }) {
   const { country } = useCountry()
   const [activeVideo, setActiveVideo] = useState<VideoItem | null>(null)
-
   const videos = extractVideos(articles, country)
 
   if (videos.length === 0) {
