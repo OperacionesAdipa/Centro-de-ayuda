@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect } from 'use'
 import { useRouter } from 'next/navigation'
 
 export default function EditarDesdeArticuloPage({ params }: { params: { slug: string } }) {
