@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { useCountry } from '@/lib/useCountry'
-import { ZCategory, ZSection, ZArticle, slugify, CATEGORY_ICONS, extractTagsFromBody } from '@/lib/zendesk'
+import { slugify, CATEGORY_ICONS, filterArticlesByCountry } from '@/lib/supabaseQueries'
 import { replaceMexicoTerms } from '@/lib/countryUtils'
 
 const UPDATED_ICONS: Record<string, string> = {
@@ -16,9 +16,9 @@ const UPDATED_ICONS: Record<string, string> = {
 }
 
 interface Props {
-  categories: ZCategory[]
-  sections: ZSection[]
-  articles: ZArticle[]
+  categories: any[]
+  sections: any[]
+  articles: any[]
   currentCategoryId?: number
   currentSectionId?: number
   currentArticleId?: number
@@ -30,15 +30,10 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
   const [expandedSection, setExpandedSection] = useState<number | null>(currentSectionId ?? null)
 
   const visibleCategories = categories.filter((cat) => {
-    const catSections = sections.filter((s) => s.category_id === cat.id)
-    return catSections.some((sec) => {
-      const secArts = articles.filter((a) => a.section_id === sec.id)
-      return secArts.some((art) => {
-        const { countries } = extractTagsFromBody(art.body ?? '')
-        if (countries.length === 0) return true
-        if (countries.includes('Todos')) return true
-        return countries.includes(country)
-      })
+    const catSections = sections.filter((s: any) => s.category_id === cat.id)
+    return catSections.some((sec: any) => {
+      const secArts = articles.filter((a: any) => a.section_id === sec.id)
+      return filterArticlesByCountry(secArts, country).length > 0
     })
   })
 
@@ -46,15 +41,10 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
     <aside className="article-sidebar">
       <div className="sidebar-title">Categorías</div>
       {visibleCategories.map((cat) => {
-        const catSections = sections.filter((s) => s.category_id === cat.id)
-        const visibleSections = catSections.filter((sec) => {
-          const secArts = articles.filter((a) => a.section_id === sec.id)
-          return secArts.some((art) => {
-            const { countries } = extractTagsFromBody(art.body ?? '')
-            if (countries.length === 0) return true
-            if (countries.includes('Todos')) return true
-            return countries.includes(country)
-          })
+        const catSections = sections.filter((s: any) => s.category_id === cat.id)
+        const visibleSections = catSections.filter((sec: any) => {
+          const secArts = articles.filter((a: any) => a.section_id === sec.id)
+          return filterArticlesByCountry(secArts, country).length > 0
         })
 
         const isCatExpanded = expandedCat === cat.id
@@ -72,14 +62,11 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
               <span className="sidebar-arrow">{isCatExpanded ? '▾' : '›'}</span>
             </button>
 
-            {isCatExpanded && visibleSections.map((sec) => {
-              const secArticles = articles.filter((a) => {
-                if (a.section_id !== sec.id) return false
-                const { countries } = extractTagsFromBody(a.body ?? '')
-                if (countries.length === 0) return true
-                if (countries.includes('Todos')) return true
-                return countries.includes(country)
-              })
+            {isCatExpanded && visibleSections.map((sec: any) => {
+              const secArticles = filterArticlesByCountry(
+                articles.filter((a: any) => a.section_id === sec.id),
+                country
+              )
               const isSecExpanded = expandedSection === sec.id
               const isSecActive = currentSectionId === sec.id
 
@@ -93,7 +80,7 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
                     <span className="sidebar-arrow">{isSecExpanded ? '▾' : '›'}</span>
                   </button>
 
-                  {isSecExpanded && secArticles.map((art) => (
+                  {isSecExpanded && secArticles.map((art: any) => (
                     <Link
                       key={art.id}
                       href={`/articulo/${art.id}-${slugify(art.title)}`}
