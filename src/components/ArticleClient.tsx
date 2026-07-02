@@ -4,17 +4,17 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCountry } from '@/lib/useCountry'
-import { ZArticle, slugify, extractTagsFromBody, fixMediaUrls } from '@/lib/zendesk'
+import { slugify, extractTagsFromBody, fixMediaUrls } from '@/lib/supabaseQueries'
 import { replaceAdipaLinks, replaceMexicoTerms, COUNTRY_WHATSAPP } from '@/lib/countryUtils'
 import { trackArticleView } from './RecentlyViewed'
 import { HelpSection } from './HelpSection'
 
 interface Props {
-  article: ZArticle
+  article: any
   updatedDate: string
   categoryName?: string
   categorySlug?: string
-  relatedArticles: ZArticle[]
+  relatedArticles: any[]
 }
 
 export function ArticleClient({ article, updatedDate, categoryName, categorySlug, relatedArticles }: Props) {
