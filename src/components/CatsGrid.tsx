@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useCountry } from '@/lib/useCountry'
-import { ZCategory, ZSection, ZArticle, slugify, extractTagsFromBody, CATEGORY_ICONS } from '@/lib/zendesk'
+import { slugify, CATEGORY_ICONS, filterArticlesByCountry } from '@/lib/supabaseQueries'
 import { replaceMexicoTerms } from '@/lib/countryUtils'
 
 const UPDATED_ICONS: Record<string, string> = {
@@ -15,9 +15,9 @@ const UPDATED_ICONS: Record<string, string> = {
 }
 
 interface Props {
-  categories: ZCategory[]
-  allSections: ZSection[]
-  catArticleMap: Record<number, ZArticle[]>
+  categories: any[]
+  allSections: any[]
+  catArticleMap: Record<number, any[]>
 }
 
 export function CatsGrid({ categories, allSections, catArticleMap }: Props) {
@@ -25,29 +25,17 @@ export function CatsGrid({ categories, allSections, catArticleMap }: Props) {
 
   const visibleCats = categories.filter((cat) => {
     const arts = catArticleMap[cat.id] ?? []
-    if (arts.length === 0) return false
-    const filtered = arts.filter((art) => {
-      const { countries } = extractTagsFromBody(art.body ?? '')
-      if (countries.length === 0) return true
-      if (countries.includes('Todos')) return true
-      return countries.includes(country)
-    })
+    const filtered = filterArticlesByCountry(arts, country)
     return filtered.length > 0
   })
 
   return (
     <div className="cats-grid-large" style={{ marginBottom: 40 }}>
       {visibleCats.map((cat, i) => {
-        const catSections = allSections.filter((s) => s.category_id === cat.id)
-        const visibleSections = catSections.filter((sec) => {
-          const arts = (catArticleMap[cat.id] ?? []).filter((a) => a.section_id === sec.id)
-          const filtered = arts.filter((art) => {
-            const { countries } = extractTagsFromBody(art.body ?? '')
-            if (countries.length === 0) return true
-            if (countries.includes('Todos')) return true
-            return countries.includes(country)
-          })
-          return filtered.length > 0
+        const catSections = allSections.filter((s: any) => s.category_id === cat.id)
+        const visibleSections = catSections.filter((sec: any) => {
+          const arts = filterArticlesByCountry(catArticleMap[cat.id]?.filter((a: any) => a.section_id === sec.id) ?? [], country)
+          return arts.length > 0
         })
 
         return (
