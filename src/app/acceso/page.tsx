@@ -24,7 +24,9 @@ export default function AccesoPage() {
 
     if (res.ok && data.token) {
       localStorage.setItem('agent_token', data.token)
-      router.push('/agentes')
+      const redirect = localStorage.getItem('redirect_after_login')
+      localStorage.removeItem('redirect_after_login')
+      router.push(redirect ?? '/agentes')
     } else {
       setError('Correo o contraseña incorrectos.')
     }
