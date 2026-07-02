@@ -17,10 +17,6 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: "frame-src 'self' https://www.loom.com https://www.youtube.com https://player.vimeo.com https://fast.wistia.net;",
           },
-          {
-            key: 'x-pathname',
-            value: '/:path*',
-          },
         ],
       },
     ]
@@ -34,5 +30,4 @@ const nextConfig = {
     ]
   },
 }
-
 module.exports = nextConfig
