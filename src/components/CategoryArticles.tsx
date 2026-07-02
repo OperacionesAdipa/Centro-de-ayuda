@@ -3,11 +3,11 @@
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { useCountry } from '@/lib/useCountry'
-import { ZArticle, ZSection, slugify, extractTagsFromBody } from '@/lib/zendesk'
+import { slugify, filterArticlesByCountry, replaceMexicoTerms as replaceMX } from '@/lib/supabaseQueries'
 import { replaceMexicoTerms } from '@/lib/countryUtils'
 
 interface Props {
-  articlesPerSection: { section: ZSection; arts: ZArticle[] }[]
+  articlesPerSection: { section: any; arts: any[] }[]
 }
 
 export function CategoryArticles({ articlesPerSection }: Props) {
@@ -18,12 +18,7 @@ export function CategoryArticles({ articlesPerSection }: Props) {
   const visibleSections = articlesPerSection
     .map(({ section, arts }) => ({
       section,
-      arts: arts.filter((art) => {
-        const { countries } = extractTagsFromBody(art.body ?? '')
-        if (countries.length === 0) return true
-        if (countries.includes('Todos')) return true
-        return countries.includes(country)
-      }),
+      arts: filterArticlesByCountry(arts, country),
     }))
     .filter(({ arts }) => arts.length > 0)
 
@@ -84,7 +79,7 @@ export function CategoryArticles({ articlesPerSection }: Props) {
               </p>
             )}
             <div className="article-list">
-              {arts.map((art) => (
+              {arts.map((art: any) => (
                 <Link
                   key={art.id}
                   href={`/articulo/${art.id}-${slugify(art.title)}`}
