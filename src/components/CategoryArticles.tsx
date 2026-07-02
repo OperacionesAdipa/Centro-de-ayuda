@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { useCountry } from '@/lib/useCountry'
-import { slugify, filterArticlesByCountry, replaceMexicoTerms as replaceMX } from '@/lib/supabaseQueries'
+import { slugify, filterArticlesByCountry } from '@/lib/supabaseQueries'
 import { replaceMexicoTerms } from '@/lib/countryUtils'
 
 interface Props {
