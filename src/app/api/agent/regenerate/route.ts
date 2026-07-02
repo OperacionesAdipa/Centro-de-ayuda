@@ -99,33 +99,18 @@ async function getExistingImageContexts(articleBody: string): Promise<{ src: str
 
 async function takeScreenshotForContext(url: string, context: string): Promise<string | null> {
   try {
-    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY!,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 100,
-        messages: [{
-          role: 'user',
-          content: `Del siguiente contexto de un artículo, extrae el texto clave que probablemente aparece en la página web y que debería estar visible en un screenshot.
+    const words = context
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .split(' ')
+      .filter(w => w.length > 4)
+      .slice(0, 3)
+      .join(' ')
 
-Contexto: ${context}
+    if (!words) return null
 
-Responde ÚNICAMENTE con el texto clave (máximo 5 palabras) que debe aparecer en la página. Si no hay texto clave claro, responde: "none"`,
-        }],
-      }),
-    })
-
-    const claudeData = await claudeRes.json()
-    const targetText = claudeData.content?.[0]?.text?.trim()
-
-    if (!targetText || targetText === 'none') return null
-
-    return await takeTargetedScreenshot(url, targetText)
+    return await takeTargetedScreenshot(url, words)
   } catch {
     return null
   }
@@ -338,8 +323,12 @@ Responde ÚNICAMENTE con el JSON, sin explicaciones.`,
       } catch {}
 
       let screenshot: string | null = null
-      if (imageReplacements.length === 0 && needsScreenshot && targetText) {
-        screenshot = await takeTargetedScreenshot(urlData.url, targetText)
+      if (imageReplacements.length === 0) {
+        if (needsScreenshot && targetText) {
+          screenshot = await takeTargetedScreenshot(urlData.url, targetText)
+        } else if (existingImages.length > 0) {
+          screenshot = await takeTargetedScreenshot(urlData.url, cleanText.split(' ').filter(w => w.length > 5).slice(0, 3).join(' '))
+        }
       }
 
       const imageReplacementsText = imageReplacements.length > 0
