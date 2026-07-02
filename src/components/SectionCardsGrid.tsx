@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useCountry } from '@/lib/useCountry'
-import { ZArticle, ZSection, slugify, extractTagsFromBody } from '@/lib/zendesk'
+import { slugify, filterArticlesByCountry } from '@/lib/supabaseQueries'
 import { replaceMexicoTerms } from '@/lib/countryUtils'
 import Link from 'next/link'
 
@@ -36,9 +36,6 @@ const SECTION_ICONS: Record<string, string> = {
   'Accesos al Aula Virtual': '🔑',
   'Programas': '🎓',
   'Certificados': '🏅',
-  'Beneficios Chile': '🎁',
-  'Beneficios México': '🎁',
-  'Beneficios Colombia': '🎁',
   'Preguntas frecuentes Ventas': '❓',
   'Productos ADIPA': '📦',
   'Precios programas': '💰',
@@ -46,8 +43,8 @@ const SECTION_ICONS: Record<string, string> = {
 }
 
 interface Props {
-  sections: ZSection[]
-  articlesPerSection: { section: ZSection; arts: ZArticle[] }[]
+  sections: any[]
+  articlesPerSection: { section: any; arts: any[] }[]
 }
 
 export function SectionCardsGrid({ sections, articlesPerSection }: Props) {
@@ -60,27 +57,15 @@ export function SectionCardsGrid({ sections, articlesPerSection }: Props) {
 
   const visibleSections = uniqueSections.filter((sec) => {
     const arts = articlesPerSection.find((a) => a.section.id === sec.id)?.arts ?? []
-    const filtered = arts.filter((art) => {
-      const { countries } = extractTagsFromBody(art.body ?? '')
-      if (countries.length === 0) return true
-      if (countries.includes('Todos')) return true
-      return countries.includes(country)
-    })
-    return filtered.length > 0
+    return filterArticlesByCountry(arts, country).length > 0
   })
 
   return (
     <div className="section-accordion">
       {visibleSections.map((sec, i) => {
         const entry = articlesPerSection.find((a) => a.section.id === sec.id)
-        const arts = entry?.arts.filter((art) => {
-          const { countries } = extractTagsFromBody(art.body ?? '')
-          if (countries.length === 0) return true
-          if (countries.includes('Todos')) return true
-          return countries.includes(country)
-        }) ?? []
+        const arts = filterArticlesByCountry(entry?.arts ?? [], country)
         const isActive = activeSection === sec.id
-        const count = arts.length
         const icon = SECTION_ICONS[sec.name] ?? '📂'
 
         return (
@@ -95,7 +80,7 @@ export function SectionCardsGrid({ sections, articlesPerSection }: Props) {
                 <div className="section-card-large-name">
                   {replaceMexicoTerms(sec.name, country)}
                 </div>
-                <div className="section-card-large-meta">{count} artículos</div>
+                <div className="section-card-large-meta">{arts.length} artículos</div>
               </div>
               <span style={{ fontSize: 18, color: 'var(--purple)', marginLeft: 8 }}>
                 {isActive ? '▾' : '›'}
@@ -105,7 +90,7 @@ export function SectionCardsGrid({ sections, articlesPerSection }: Props) {
             {isActive && (
               <div className="section-accordion-articles">
                 <div className="article-list">
-                  {arts.map((art) => (
+                  {arts.map((art: any) => (
                     <Link
                       key={art.id}
                       href={`/articulo/${art.id}-${slugify(art.title)}`}
