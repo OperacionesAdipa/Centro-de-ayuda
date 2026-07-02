@@ -75,11 +75,66 @@ async function takeTargetedScreenshot(url: string, targetText: string): Promise<
   }
 }
 
+async function getExistingImageContexts(articleBody: string): Promise<{ src: string; context: string }[]> {
+  if (!articleBody) return []
+
+  const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi
+  const images: { src: string; context: string }[] = []
+  let match
+
+  while ((match = imgRegex.exec(articleBody)) !== null) {
+    const src = match[1]
+    const matchIndex = match.index
+    const surroundingText = articleBody
+      .slice(Math.max(0, matchIndex - 300), matchIndex + 300)
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+
+    images.push({ src, context: surroundingText })
+  }
+
+  return images
+}
+
+async function takeScreenshotForContext(url: string, context: string): Promise<string | null> {
+  try {
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY!,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 100,
+        messages: [{
+          role: 'user',
+          content: `Del siguiente contexto de un artículo, extrae el texto clave que probablemente aparece en la página web y que debería estar visible en un screenshot.
+
+Contexto: ${context}
+
+Responde ÚNICAMENTE con el texto clave (máximo 5 palabras) que debe aparecer en la página. Si no hay texto clave claro, responde: "none"`,
+        }],
+      }),
+    })
+
+    const claudeData = await claudeRes.json()
+    const targetText = claudeData.content?.[0]?.text?.trim()
+
+    if (!targetText || targetText === 'none') return null
+
+    return await takeTargetedScreenshot(url, targetText)
+  } catch {
+    return null
+  }
+}
+
 async function getNavigationPath(url: string): Promise<string | null> {
   try {
     const urlObj = new URL(url)
     const origin = urlObj.origin
-    const path = urlObj.pathname
 
     const homeRes = await fetch(origin, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ADIPA-Bot/1.0)' },
@@ -205,7 +260,6 @@ export async function POST(req: NextRequest) {
       .slice(0, 30)
 
     const linksText = filteredLinks.map(l => `- "${l.text}" → ${l.href}`).join('\n')
-
     const navigationPath = await getNavigationPath(urlData.url)
 
     const { data: articleUrlData } = await supabaseAdmin
@@ -229,9 +283,18 @@ export async function POST(req: NextRequest) {
 
     for (const article of articles ?? []) {
       const otherArticleTitles = allArticleTitles.filter((t: string) => t !== article.title)
-
       const countryLabel = (article.label_names ?? []).find((l: string) => l.startsWith('pais_')) ?? 'pais_chile'
       const localizedUrl = getAdipaUrlForCountry(urlData.url, countryLabel)
+
+      const existingImages = await getExistingImageContexts(article.body ?? '')
+      const imageReplacements: { oldSrc: string; newSrc: string }[] = []
+
+      for (const img of existingImages.slice(0, 3)) {
+        const newScreenshot = await takeScreenshotForContext(urlData.url, img.context)
+        if (newScreenshot) {
+          imageReplacements.push({ oldSrc: img.src, newSrc: newScreenshot })
+        }
+      }
 
       const analysisRes = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -275,9 +338,17 @@ Responde ÚNICAMENTE con el JSON, sin explicaciones.`,
       } catch {}
 
       let screenshot: string | null = null
-      if (needsScreenshot && targetText) {
+      if (imageReplacements.length === 0 && needsScreenshot && targetText) {
         screenshot = await takeTargetedScreenshot(urlData.url, targetText)
       }
+
+      const imageReplacementsText = imageReplacements.length > 0
+        ? `IMÁGENES ACTUALIZADAS (úsalas en los mismos lugares donde estaban las originales):
+${imageReplacements.map((r, i) => `- Imagen ${i + 1}: <img src="${r.newSrc}" alt="Captura de pantalla" style="max-width:100%; border-radius:8px; margin:12px 0; border: 1px solid #e5e7eb;">`).join('\n')}`
+        : screenshot
+        ? `IMAGEN DISPONIBLE:
+<img src="${screenshot}" alt="Captura de pantalla" style="max-width:100%; border-radius:8px; margin:12px 0; border: 1px solid #e5e7eb;">`
+        : ''
 
       const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -315,8 +386,7 @@ Incluye estos pasos de navegación al inicio del artículo si es relevante.` : '
 LINKS DISPONIBLES EN LA PÁGINA (úsalos cuando hagas referencia a algo):
 ${linksText}
 
-${screenshot ? `IMAGEN DISPONIBLE (úsala donde sea más relevante):
-<img src="${screenshot}" alt="Captura de pantalla" style="max-width:100%; border-radius:8px; margin:12px 0; border: 1px solid #e5e7eb;">` : ''}
+${imageReplacementsText}
 
 INSTRUCCIONES:
 - Responde únicamente la pregunta: "${article.title}"
@@ -327,7 +397,7 @@ INSTRUCCIONES:
 - Cuando hagas referencia al sitio web usa siempre: ${localizedUrl}
 - Cuando hagas referencia a algo de la página, incluye el hipervínculo usando <a href="URL">texto</a>
 - NUNCA incluyas links que contengan "zendesk.com"
-- ${screenshot ? 'Incluye la imagen en el lugar más relevante del artículo' : 'No incluyas imágenes'}
+- ${imageReplacements.length > 0 ? 'Incluye las imágenes actualizadas en los mismos lugares donde estaban las originales' : screenshot ? 'Incluye la imagen en el lugar más relevante del artículo' : 'No incluyas imágenes'}
 - NO incluyas el título en el HTML
 - Responde ÚNICAMENTE con HTML puro, sin bloques de código, sin markdown, sin \`\`\``,
           }],
@@ -347,7 +417,7 @@ INSTRUCCIONES:
         })
         .eq('id', article.id)
 
-      results.push({ id: article.id, title: article.title, screenshot: !!screenshot })
+      results.push({ id: article.id, title: article.title, screenshot: !!screenshot, imagesReplaced: imageReplacements.length })
     }
 
     await supabaseAdmin
