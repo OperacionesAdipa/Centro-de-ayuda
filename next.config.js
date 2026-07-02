@@ -5,6 +5,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'adipa.zendesk.com' },
       { protocol: 'https', hostname: '*.amazonaws.com' },
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+      { protocol: 'https', hostname: '*.supabase.co' },
     ],
   },
   async headers() {
@@ -17,8 +18,8 @@ const nextConfig = {
             value: "frame-src 'self' https://www.loom.com https://www.youtube.com https://player.vimeo.com https://fast.wistia.net;",
           },
           {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN',
+            key: 'x-pathname',
+            value: '/:path*',
           },
         ],
       },
