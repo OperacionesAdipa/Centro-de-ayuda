@@ -283,7 +283,7 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
             {saving ? 'Guardando...' : 'Publicar'}
           </button>
           <button className="agent-nav-btn" onClick={deleteArticle} disabled={deleting} style={{ color: '#e24b4a', borderColor: '#e24b4a' }}>
-            {deleting ? 'Eliminando...' : '&#128465; Eliminar'}
+            {deleting ? 'Eliminando...' : 'Eliminar'}
           </button>
         </div>
       </div>
