@@ -112,6 +112,7 @@ INSTRUCCIONES:
 - Si hay pasos a seguir, usa una lista numerada <ol>
 - Cuando hagas referencia a algo de la página, incluye el hipervínculo usando <a href="URL">texto</a>
 - NUNCA incluyas links que contengan "zendesk.com"
+- NUNCA incluyas ejemplos con fechas específicas, nombres de eventos, precios puntuales o información que pueda expirar. Describe los procesos de forma genérica.
 - No incluyas imágenes
 - NO incluyas el título en el HTML
 - Responde ÚNICAMENTE con HTML puro, sin bloques de código, sin markdown, sin \`\`\``,
