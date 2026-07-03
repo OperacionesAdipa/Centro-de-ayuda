@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation'
 import { AgentNav } from '@/components/AgentNav'
 import { ActualizarArticulos } from '@/components/ia/ActualizarArticulos'
 import { GenerarArticulos } from '@/components/ia/GenerarArticulos'
-import { VideosVimeo } from '@/components/ia/VideosVimeo'
+import { ActualizarVideos } from '@/components/ia/ActualizarVideos'
+import { GenerarDesdeVideo } from '@/components/ia/GenerarDesdeVideo'
 
-type Tab = 'actualizar' | 'generar' | 'videos'
+type Tab = 'actualizar' | 'generar' | 'actualizar-video' | 'generar-video'
 
 export default function IAPage() {
   const router = useRouter()
@@ -35,19 +36,25 @@ export default function IAPage() {
       <div className="agent-body">
         <div className="ia-tabs">
           <button className={`ia-tab ${tab === 'actualizar' ? 'active' : ''}`} onClick={() => setTab('actualizar')}>
-            Actualizar articulos con IA
+            Actualizar artículos con IA
           </button>
           <button className={`ia-tab ${tab === 'generar' ? 'active' : ''}`} onClick={() => setTab('generar')}>
-            Generar articulos con IA
+            Generar artículos con IA
           </button>
-          <button className={`ia-tab ${tab === 'videos' ? 'active' : ''}`} onClick={() => setTab('videos')}>
-            Videos Vimeo
+          <div className="ia-tab-divider" />
+          <button className={`ia-tab video-tab ${tab === 'actualizar-video' ? 'active video-active' : ''}`} onClick={() => setTab('actualizar-video')}>
+            Actualizar artículos con video
+          </button>
+          <button className={`ia-tab video-tab ${tab === 'generar-video' ? 'active video-active' : ''}`} onClick={() => setTab('generar-video')}>
+            Generar artículos con video
           </button>
         </div>
+
         <div className="ia-tab-content">
           {tab === 'actualizar' && <ActualizarArticulos />}
           {tab === 'generar' && <GenerarArticulos />}
-          {tab === 'videos' && <VideosVimeo />}
+          {tab === 'actualizar-video' && <ActualizarVideos />}
+          {tab === 'generar-video' && <GenerarDesdeVideo />}
         </div>
       </div>
     </div>
