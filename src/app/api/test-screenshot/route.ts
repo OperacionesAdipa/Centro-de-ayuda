@@ -1,44 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(req: NextRequest) {
   try {
-    const browserlessKey = process.env.BROWSERLESS_API_KEY
-    if (!browserlessKey) return NextResponse.json({ error: 'No hay API key' })
-
     const vimeoId = req.nextUrl.searchParams.get('id') ?? '1202296335'
     const timestamp = parseInt(req.nextUrl.searchParams.get('t') ?? '30')
 
-    const res = await fetch(`https://chrome.browserless.io/screenshot?token=${browserlessKey}`, {
+    const createRes = await fetch(`https://api.vimeo.com/videos/${vimeoId}/pictures`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        url: `https://player.vimeo.com/video/${vimeoId}?autoplay=1&muted=1&t=${timestamp}`,
-        options: {
-          type: 'jpeg',
-          quality: 90,
-          fullPage: false,
-          clip: {
-            x: 0,
-            y: 0,
-            width: 1280,
-            height: 720,
-          },
-        },
-      }),
+      headers: {
+        Authorization: `Bearer ${process.env.VIMEO_TOKEN}`,
+        Accept: 'application/vnd.vimeo.*+json;version=3.4',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ time: timestamp, active: false }),
     })
 
-    if (!res.ok) {
-      const err = await res.text()
-      return NextResponse.json({ ok: false, status: res.status, error: err })
+    if (!createRes.ok) {
+      const err = await createRes.text()
+      return NextResponse.json({ ok: false, status: createRes.status, error: err })
     }
 
-    const buffer = await res.arrayBuffer()
-    const fileName = `test-seek-${vimeoId}-${timestamp}.jpg`
-    await supabaseAdmin.storage.from('article-images').upload(fileName, buffer, { contentType: 'image/jpeg', upsert: true })
-    const { data } = supabaseAdmin.storage.from('article-images').getPublicUrl(fileName)
+    const pictureData = await createRes.json()
+    const sizes = pictureData.sizes ?? []
+    const largest = sizes.find((s: any) => s.width >= 1280) ?? sizes[sizes.length - 1]
 
-    return NextResponse.json({ ok: true, size: buffer.byteLength, url: data.publicUrl })
+    return NextResponse.json({
+      ok: true,
+      timestamp,
+      pictureUri: pictureData.uri,
+      imageUrl: largest?.link ?? null,
+      allSizes: sizes.map((s: any) => ({ width: s.width, link: s.link })),
+    })
   } catch (e: any) {
     return NextResponse.json({ error: e.message })
   }
