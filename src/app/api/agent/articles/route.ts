@@ -1,20 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
-async function verifyToken(req: NextRequest) {
-  const token = req.headers.get('x-agent-token')
-  if (!token) return false
-
-  const { data } = await supabaseAdmin
-    .from('agent_sessions')
-    .select('*')
-    .eq('token', token)
-    .gt('expires_at', new Date().toISOString())
-    .single()
-
-  return !!data
-}
-
 export async function GET(req: NextRequest) {
   try {
     const { data, error } = await supabaseAdmin
