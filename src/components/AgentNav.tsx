@@ -13,9 +13,9 @@ export function AgentNav() {
   }
 
   const links = [
-    { href: '/agentes', label: '📋 Portal', exact: true },
-    { href: '/agentes/ia', label: '🤖 IA' },
-    { href: '/agentes/nuevo', label: '+ Nuevo artículo' },
+    { href: '/agentes', label: 'Portal', exact: true },
+    { href: '/agentes/ia', label: 'Centro IA' },
+    { href: '/agentes/nuevo', label: '+ Nuevo' },
   ]
 
   return (
@@ -24,7 +24,7 @@ export function AgentNav() {
         <Link href="/agentes">
           <img src="https://adipa.cl/content/uploads/2022/10/logo-adipa.svg" alt="ADIPA" style={{ height: 28 }} />
         </Link>
-        <span className="agent-header-title">&#9998; Modo edición</span>
+        <span className="agent-header-title">Modo edicion</span>
       </div>
       <nav className="agent-nav-links">
         {links.map(({ href, label, exact }) => {
@@ -45,10 +45,10 @@ export function AgentNav() {
           rel="noopener noreferrer"
           className="agent-nav-btn"
         >
-          &#128065; Ver sitio
+          Ver sitio
         </a>
         <button className="agent-nav-btn" onClick={logout}>
-          Cerrar sesión
+          Cerrar sesion
         </button>
       </nav>
     </div>
