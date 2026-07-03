@@ -21,8 +21,15 @@ export function AgentNav() {
   return (
     <div className="agent-header">
       <div className="agent-header-left">
+        <button
+          onClick={() => router.back()}
+          className="agent-nav-btn"
+          title="Volver atras"
+        >
+          &#8592; Volver
+        </button>
         <Link href="/agentes">
-          <img src="https://adipa.cl/content/uploads/2022/10/logo-adipa.svg" alt="ADIPA" style={{ height: 28 }} />
+          <img src="https://adipa.cl/content/uploads/2022/10/logo-adipa.svg" alt="ADIPA" style={{ height: 28, marginLeft: 8 }} />
         </Link>
         <span className="agent-header-title">Modo edicion</span>
       </div>
