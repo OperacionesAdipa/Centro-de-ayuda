@@ -16,6 +16,7 @@ interface Article {
   updated_at: string
   label_names: string[]
   source_urls: string[]
+  needs_images: boolean
 }
 
 export default function AgentesPage() {
@@ -56,6 +57,8 @@ export default function AgentesPage() {
       ? true
       : filterStatus === 'no_url'
       ? (!a.source_urls || a.source_urls.length === 0)
+      : filterStatus === 'needs_images'
+      ? a.needs_images === true
       : a.status === filterStatus
     const matchCat = filterCat === 'all' || a.category_name === filterCat
     return matchSearch && matchStatus && matchCat
@@ -67,6 +70,7 @@ export default function AgentesPage() {
     { label: 'Borradores', value: articles.filter(a => a.status === 'draft').length, filter: 'draft' },
     { label: 'Pendientes', value: articles.filter(a => a.status === 'pending_review').length, filter: 'pending_review' },
     { label: 'Sin URL', value: articles.filter(a => !a.source_urls || a.source_urls.length === 0).length, filter: 'no_url' },
+    { label: 'Faltan imágenes', value: articles.filter(a => a.needs_images).length, filter: 'needs_images' },
   ]
 
   if (loading) return <div className="agent-loading">Cargando...</div>
@@ -76,7 +80,7 @@ export default function AgentesPage() {
       <AgentNav />
 
       <div className="agent-body">
-        <div className="agent-stats">
+        <div className="agent-stats" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
           {stats.map(({ label, value, filter }) => (
             <button
               key={filter}
@@ -91,7 +95,7 @@ export default function AgentesPage() {
                 textAlign: 'center',
               }}
             >
-              <div className="agent-stat-n" style={{ color: filterStatus === filter ? 'var(--purple)' : 'var(--purple)' }}>{value}</div>
+              <div className="agent-stat-n">{value}</div>
               <div className="agent-stat-l">{label}</div>
             </button>
           ))}
@@ -105,6 +109,7 @@ export default function AgentesPage() {
             <option value="draft">Borradores</option>
             <option value="pending_review">Pendientes de revisión</option>
             <option value="no_url">Sin URL asociada</option>
+            <option value="needs_images">Faltan imágenes</option>
           </select>
           <select className="agent-select" value={filterCat} onChange={(e) => setFilterCat(e.target.value)}>
             <option value="all">Todas las categorías</option>
@@ -121,6 +126,7 @@ export default function AgentesPage() {
                 <th>Sección</th>
                 <th>País</th>
                 <th>Estado</th>
+                <th>Imágenes</th>
                 <th>Vistas</th>
                 <th>Acciones</th>
               </tr>
@@ -142,6 +148,13 @@ export default function AgentesPage() {
                     <span className={`agent-status ${art.status}`}>
                       {art.status === 'published' ? 'Publicado' : art.status === 'draft' ? 'Borrador' : 'Pendiente'}
                     </span>
+                  </td>
+                  <td>
+                    {art.needs_images && (
+                      <span style={{ fontSize: 11, background: '#faeeda', color: '#854f0b', padding: '3px 8px', borderRadius: 99 }}>
+                        Faltan imágenes
+                      </span>
+                    )}
                   </td>
                   <td>{art.view_count}</td>
                   <td>
