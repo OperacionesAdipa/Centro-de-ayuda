@@ -58,22 +58,26 @@ export async function POST(req: NextRequest) {
 
     const linksText = filteredLinks.map(l => `- "${l.text}" → ${l.href}`).join('\n')
 
-    const created = []
+    let sourceUrlRecord: any = null
 
-    let { data: sourceUrl } = await supabaseAdmin
+    const { data: existingUrl } = await supabaseAdmin
       .from('source_urls')
       .select('id')
       .eq('url', url)
       .single()
 
-    if (!sourceUrl) {
+    if (existingUrl) {
+      sourceUrlRecord = existingUrl
+    } else {
       const { data: newSourceUrl } = await supabaseAdmin
         .from('source_urls')
         .insert({ url, name: url, description: '' })
         .select()
         .single()
-      sourceUrl = newSourceUrl
+      sourceUrlRecord = newSourceUrl
     }
+
+    const created = []
 
     for (const question of questions) {
       const otherQuestions = questions.filter((q: string) => q !== question)
@@ -145,10 +149,10 @@ INSTRUCCIONES:
 
       if (error || !article) continue
 
-      if (sourceUrl) {
+      if (sourceUrlRecord) {
         await supabaseAdmin
           .from('article_source_urls')
-          .insert({ article_id: article.id, source_url_id: sourceUrl.id })
+          .insert({ article_id: article.id, source_url_id: sourceUrlRecord.id })
       }
 
       created.push({ id: article.id, title: question })
