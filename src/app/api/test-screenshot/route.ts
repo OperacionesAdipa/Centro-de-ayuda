@@ -15,7 +15,6 @@ export async function GET(req: NextRequest) {
           quality: 85,
           fullPage: false,
         },
-        waitFor: 3000,
       }),
     })
 
@@ -25,10 +24,10 @@ export async function GET(req: NextRequest) {
     }
 
     const buffer = await res.arrayBuffer()
-    return NextResponse.json({ 
-      ok: true, 
+    return NextResponse.json({
+      ok: true,
       size: buffer.byteLength,
-      message: buffer.byteLength > 5000 ? 'Screenshot capturado correctamente' : 'Screenshot muy pequeño, puede estar vacío'
+      message: buffer.byteLength > 5000 ? 'Screenshot capturado correctamente' : 'Screenshot muy pequeño'
     })
   } catch (e: any) {
     return NextResponse.json({ error: e.message })
