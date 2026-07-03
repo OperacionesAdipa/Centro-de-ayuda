@@ -51,10 +51,6 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, descripti
           quality: 90,
           fullPage: false,
         },
-        gotoOptions: {
-          waitUntil: 'networkidle2',
-          timeout: 30000,
-        },
       }),
     })
 
