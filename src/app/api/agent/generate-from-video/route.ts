@@ -36,29 +36,29 @@ function parseTranscript(vtt: string): { time: number; text: string }[] {
 
 async function takeVimeoScreenshot(vimeoId: string, timestamp: number, description: string): Promise<string | null> {
   try {
-    const browserlessKey = process.env.BROWSERLESS_API_KEY
-    if (!browserlessKey) return null
-
-    const playerUrl = `https://player.vimeo.com/video/${vimeoId}#t=${Math.floor(timestamp)}s`
-
-    const res = await fetch(`https://chrome.browserless.io/screenshot?token=${browserlessKey}`, {
+    const createRes = await fetch(`https://api.vimeo.com/videos/${vimeoId}/pictures`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        url: playerUrl,
-        options: {
-          type: 'jpeg',
-          quality: 90,
-          fullPage: false,
-        },
-      }),
+      headers: {
+        Authorization: `Bearer ${process.env.VIMEO_TOKEN}`,
+        Accept: 'application/vnd.vimeo.*+json;version=3.4',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ time: Math.floor(timestamp), active: false }),
     })
 
-    if (!res.ok) return null
+    if (!createRes.ok) return null
 
-    const buffer = await res.arrayBuffer()
-    if (buffer.byteLength < 5000) return null
+    const pictureData = await createRes.json()
+    const sizes = pictureData.sizes ?? []
+    const largest = sizes.find((s: any) => s.width >= 1280) ?? sizes[sizes.length - 1]
+    const imageUrl = largest?.link ?? null
 
+    if (!imageUrl) return null
+
+    const imgRes = await fetch(imageUrl)
+    if (!imgRes.ok) return null
+
+    const buffer = await imgRes.arrayBuffer()
     const fileName = `vimeo-${vimeoId}-${Math.floor(timestamp)}-${Math.random().toString(36).slice(2)}.jpg`
 
     const { error } = await supabaseAdmin.storage
@@ -259,4 +259,3 @@ INSTRUCCIONES:
     return NextResponse.json({ error: e.message }, { status: 500 })
   }
 }
-
