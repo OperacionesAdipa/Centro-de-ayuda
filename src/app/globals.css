@@ -1781,3 +1781,14 @@ html.dark .font-size-label { color: #9ca3af; }
 html.dark .ia-tab { background: #1a1a2e; color: #9ca3af; border-color: rgba(112,78,253,0.2); }
 html.dark .ia-tab.active { background: var(--purple); color: #fff; }
 html.dark .ia-tab-content { background: #1a1a2e; border-color: rgba(112,78,253,0.2); }
+.agent-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.agent-nav-btn.active {
+  background: var(--purple);
+  color: #fff;
+  border-color: var(--purple);
+}
