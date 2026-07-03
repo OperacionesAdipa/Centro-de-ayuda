@@ -15,6 +15,7 @@ interface Article {
   view_count: number
   updated_at: string
   label_names: string[]
+  source_urls: string[]
 }
 
 export default function AgentesPage() {
@@ -51,7 +52,11 @@ export default function AgentesPage() {
 
   const filtered = articles.filter((a) => {
     const matchSearch = a.title.toLowerCase().includes(search.toLowerCase())
-    const matchStatus = filterStatus === 'all' || a.status === filterStatus || (filterStatus === 'no_url' && (!a as any).source_urls?.length)
+    const matchStatus = filterStatus === 'all'
+      ? true
+      : filterStatus === 'no_url'
+      ? (!a.source_urls || a.source_urls.length === 0)
+      : a.status === filterStatus
     const matchCat = filterCat === 'all' || a.category_name === filterCat
     return matchSearch && matchStatus && matchCat
   })
@@ -68,7 +73,7 @@ export default function AgentesPage() {
           <div className="agent-stat"><div className="agent-stat-n">{articles.filter(a => a.status === 'published').length}</div><div className="agent-stat-l">Publicados</div></div>
           <div className="agent-stat"><div className="agent-stat-n">{articles.filter(a => a.status === 'draft').length}</div><div className="agent-stat-l">Borradores</div></div>
           <div className="agent-stat"><div className="agent-stat-n">{articles.filter(a => a.status === 'pending_review').length}</div><div className="agent-stat-l">Pendientes</div></div>
-          <div className="agent-stat"><div className="agent-stat-n">{articles.filter(a => a.promoted).length}</div><div className="agent-stat-l">Destacados</div></div>
+          <div className="agent-stat"><div className="agent-stat-n">{articles.filter(a => !a.source_urls || a.source_urls.length === 0).length}</div><div className="agent-stat-l">Sin URL</div></div>
         </div>
 
         <div className="agent-filters">
