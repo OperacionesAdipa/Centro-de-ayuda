@@ -39,27 +39,45 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, descripti
     const browserlessKey = process.env.BROWSERLESS_API_KEY
     if (!browserlessKey) return null
 
-    const playerUrl = `https://player.vimeo.com/video/${vimeoId}?t=${Math.floor(timestamp)}&autoplay=0`
-
     const res = await fetch(`https://chrome.browserless.io/function?token=${browserlessKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         code: `
           module.exports = async ({ page }) => {
-            await page.goto('${playerUrl}', { waitUntil: 'networkidle2', timeout: 30000 });
             await page.setViewport({ width: 1280, height: 720 });
-            await page.waitForTimeout(3000);
+            await page.goto('https://player.vimeo.com/video/${vimeoId}', {
+              waitUntil: 'networkidle2',
+              timeout: 30000
+            });
+            await page.waitForTimeout(2000);
 
-            try {
-              const playBtn = await page.$('.play-button, [aria-label="Play"], .vp-controls button');
-              if (playBtn) {
-                await playBtn.click();
-                await page.waitForTimeout(1000);
-                await playBtn.click();
-                await page.waitForTimeout(500);
+            await page.evaluate((seconds) => {
+              const videos = document.querySelectorAll('video');
+              videos.forEach(v => {
+                v.currentTime = seconds;
+                v.pause();
+              });
+            }, ${Math.floor(timestamp)});
+
+            await page.waitForTimeout(1500);
+
+            const videoEl = await page.$('video');
+            if (videoEl) {
+              const box = await videoEl.boundingBox();
+              if (box) {
+                return await page.screenshot({
+                  type: 'jpeg',
+                  quality: 90,
+                  clip: {
+                    x: box.x,
+                    y: box.y,
+                    width: box.width,
+                    height: box.height
+                  }
+                });
               }
-            } catch(e) {}
+            }
 
             return await page.screenshot({ type: 'jpeg', quality: 85 });
           };
@@ -70,6 +88,8 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, descripti
     if (!res.ok) return null
 
     const buffer = await res.arrayBuffer()
+    if (buffer.byteLength < 5000) return null
+
     const fileName = `vimeo-${vimeoId}-${Math.floor(timestamp)}-${Math.random().toString(36).slice(2)}.jpg`
 
     const { error } = await supabaseAdmin.storage
@@ -156,21 +176,20 @@ Responde en JSON:
 {
   "steps": [
     {
-      "description": "descripción del paso",
-      "timestamp": segundos_exactos,
-      "transcriptText": "texto exacto de la transcripción en ese momento"
+      "description": "descripción breve del paso",
+      "timestamp": segundos_exactos
     }
   ]
 }
 
-Máximo 5 pasos. Solo incluye pasos donde hay algo visual que mostrar.
-Responde ÚNICAMENTE con el JSON.`,
+Máximo 5 pasos. Solo incluye pasos donde hay algo visual importante que mostrar.
+Responde ÚNICAMENTE con el JSON, sin explicaciones.`,
           }],
         }),
       })
 
       const timestampData = await timestampRes.json()
-      let steps: { description: string; timestamp: number; transcriptText: string }[] = []
+      let steps: { description: string; timestamp: number }[] = []
       try {
         const parsed = JSON.parse(timestampData.content?.[0]?.text ?? '{}')
         steps = parsed.steps ?? []
@@ -185,10 +204,10 @@ Responde ÚNICAMENTE con el JSON.`,
       }
 
       const screenshotsText = screenshots.length > 0
-        ? `CAPTURAS DE PANTALLA DEL VIDEO (incluye cada imagen INMEDIATAMENTE después del paso que describe, como parte del paso a paso):
-${screenshots.map((s, i) => `Paso ${i + 1} - "${s.description}" (minuto ${Math.floor(s.timestamp / 60)}:${String(Math.floor(s.timestamp % 60)).padStart(2, '0')}):
+        ? `CAPTURAS DE PANTALLA DEL VIDEO (incluye cada imagen INMEDIATAMENTE después del paso que describe):
+${screenshots.map((s, i) => `Paso ${i + 1} - "${s.description}" (${Math.floor(s.timestamp / 60)}:${String(Math.floor(s.timestamp % 60)).padStart(2, '0')}):
 <figure style="margin:12px 0;"><img src="${s.url}" alt="${s.description}" style="max-width:100%; border-radius:8px; border: 1px solid #e5e7eb;"><figcaption style="font-size:12px; color:#6b7280; margin-top:4px;">${s.description}</figcaption></figure>`).join('\n\n')}`
-        : ''
+        : 'No se pudieron obtener capturas del video. Redacta el artículo con pasos claros.'
 
       const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -221,7 +240,7 @@ INSTRUCCIONES:
 - NO incluyas información de las otras preguntas listadas
 - Escribe en español latinoamericano, tono amigable y claro
 - Usa <ol> para pasos numerados — cada paso debe ser una acción concreta
-- Incluye cada captura de pantalla INMEDIATAMENTE después del paso que ilustra usando el HTML exacto proporcionado
+- ${screenshots.length > 0 ? 'Incluye cada captura de pantalla INMEDIATAMENTE después del paso que ilustra usando el HTML exacto proporcionado arriba' : 'Redacta pasos claros y detallados'}
 - NUNCA incluyas ejemplos con fechas, nombres de eventos específicos o información que pueda expirar
 - NO incluyas el título en el HTML
 - Responde ÚNICAMENTE con HTML puro, sin markdown, sin \`\`\``,
@@ -246,7 +265,7 @@ INSTRUCCIONES:
           promoted: false,
           draft: false,
           status: 'pending_review',
-          needs_images: screenshots.length === 0,
+          needs_images: false,
           updated_at: new Date().toISOString(),
         })
         .select()
