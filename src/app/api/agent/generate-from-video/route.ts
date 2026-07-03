@@ -39,49 +39,22 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, descripti
     const browserlessKey = process.env.BROWSERLESS_API_KEY
     if (!browserlessKey) return null
 
-    const res = await fetch(`https://chrome.browserless.io/function?token=${browserlessKey}`, {
+    const playerUrl = `https://player.vimeo.com/video/${vimeoId}#t=${Math.floor(timestamp)}s`
+
+    const res = await fetch(`https://chrome.browserless.io/screenshot?token=${browserlessKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        code: `
-          module.exports = async ({ page }) => {
-            await page.setViewport({ width: 1280, height: 720 });
-            await page.goto('https://player.vimeo.com/video/${vimeoId}', {
-              waitUntil: 'networkidle2',
-              timeout: 30000
-            });
-            await page.waitForTimeout(2000);
-
-            await page.evaluate((seconds) => {
-              const videos = document.querySelectorAll('video');
-              videos.forEach(v => {
-                v.currentTime = seconds;
-                v.pause();
-              });
-            }, ${Math.floor(timestamp)});
-
-            await page.waitForTimeout(1500);
-
-            const videoEl = await page.$('video');
-            if (videoEl) {
-              const box = await videoEl.boundingBox();
-              if (box) {
-                return await page.screenshot({
-                  type: 'jpeg',
-                  quality: 90,
-                  clip: {
-                    x: box.x,
-                    y: box.y,
-                    width: box.width,
-                    height: box.height
-                  }
-                });
-              }
-            }
-
-            return await page.screenshot({ type: 'jpeg', quality: 85 });
-          };
-        `,
+        url: playerUrl,
+        options: {
+          type: 'jpeg',
+          quality: 90,
+          fullPage: false,
+        },
+        gotoOptions: {
+          waitUntil: 'networkidle2',
+          timeout: 30000,
+        },
       }),
     })
 
@@ -207,7 +180,7 @@ Responde ÚNICAMENTE con el JSON, sin explicaciones.`,
         ? `CAPTURAS DE PANTALLA DEL VIDEO (incluye cada imagen INMEDIATAMENTE después del paso que describe):
 ${screenshots.map((s, i) => `Paso ${i + 1} - "${s.description}" (${Math.floor(s.timestamp / 60)}:${String(Math.floor(s.timestamp % 60)).padStart(2, '0')}):
 <figure style="margin:12px 0;"><img src="${s.url}" alt="${s.description}" style="max-width:100%; border-radius:8px; border: 1px solid #e5e7eb;"><figcaption style="font-size:12px; color:#6b7280; margin-top:4px;">${s.description}</figcaption></figure>`).join('\n\n')}`
-        : 'No se pudieron obtener capturas del video. Redacta el artículo con pasos claros.'
+        : 'No se pudieron obtener capturas del video. Redacta el artículo con pasos claros y detallados.'
 
       const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
