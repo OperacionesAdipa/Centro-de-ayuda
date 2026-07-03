@@ -1747,3 +1747,37 @@ html.dark .font-size-label { color: #9ca3af; }
 .rich-editor-content p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: #bbb; pointer-events: none; float: left; height: 0; }
 
 .ProseMirror:focus { outline: none; }
+.ia-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  border-bottom: 0.5px solid var(--border);
+  padding-bottom: 0;
+  flex-wrap: wrap;
+}
+.ia-tab {
+  padding: 10px 20px;
+  border-radius: var(--radius-full) var(--radius-full) 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 0.5px solid var(--border);
+  border-bottom: none;
+  color: var(--muted);
+  background: #fff;
+  transition: all 0.15s;
+  margin-bottom: -1px;
+}
+.ia-tab:hover { color: var(--purple); background: var(--lp); }
+.ia-tab.active { background: var(--purple); color: #fff; border-color: var(--purple); }
+.ia-tab-content {
+  background: #fff;
+  border: 0.5px solid var(--border);
+  border-radius: 0 var(--radius) var(--radius) var(--radius);
+  padding: 24px;
+  min-height: 400px;
+}
+
+html.dark .ia-tab { background: #1a1a2e; color: #9ca3af; border-color: rgba(112,78,253,0.2); }
+html.dark .ia-tab.active { background: var(--purple); color: #fff; }
+html.dark .ia-tab-content { background: #1a1a2e; border-color: rgba(112,78,253,0.2); }
