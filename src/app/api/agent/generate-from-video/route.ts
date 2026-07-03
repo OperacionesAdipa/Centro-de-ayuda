@@ -21,15 +21,23 @@ function parseTranscript(vtt: string): { time: number; text: string }[] {
       const startTime = line.split('-->')[0].trim()
       const parts = startTime.split(':')
       let time = 0
-      if (parts.length === 3) time = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseFloat(parts[2])
-      else time = parseInt(parts[0]) * 60 + parseFloat(parts[1])
+      if (parts.length === 3) {
+        time = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseFloat(parts[2])
+      } else if (parts.length === 2) {
+        time = parseInt(parts[0]) * 60 + parseFloat(parts[1])
+      }
       const textLines: string[] = []
       i++
-      while (i < lines.length && lines[i].trim() !== '') { textLines.push(lines[i].trim()); i++ }
-      const text = textLines.join(' ').replace(/<[^>]*>/g, '')
-      if (text) entries.push({ time, text })
+      while (i < lines.length && lines[i].trim() !== '' && !lines[i].trim().includes('-->')) {
+        const t = lines[i].trim()
+        if (t && !/^\d+$/.test(t)) textLines.push(t)
+        i++
+      }
+      const text = textLines.join(' ').replace(/<[^>]*>/g, '').trim()
+      if (text && time > 0) entries.push({ time, text })
+    } else {
+      i++
     }
-    i++
   }
   return entries
 }
@@ -136,6 +144,7 @@ export async function POST(req: NextRequest) {
     const transcriptEntries = transcript ? parseTranscript(transcript) : []
     const transcriptText = transcriptEntries.map(e => `[${Math.floor(e.time)}s] ${e.text}`).join('\n')
     console.log(`Transcript entries: ${transcriptEntries.length}`)
+    console.log(`Transcript preview: ${transcriptText.slice(0, 200)}`)
 
     const created = []
 
