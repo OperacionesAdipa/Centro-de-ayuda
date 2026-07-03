@@ -12,6 +12,16 @@ export function AgentNav() {
     router.push('/acceso')
   }
 
+  function goBack() {
+    const returnUrl = localStorage.getItem('agent_return_url')
+    if (returnUrl) {
+      localStorage.removeItem('agent_return_url')
+      router.push(returnUrl)
+    } else {
+      router.back()
+    }
+  }
+
   const links = [
     { href: '/agentes', label: 'Portal', exact: true },
     { href: '/agentes/ia', label: 'Centro IA' },
@@ -22,11 +32,11 @@ export function AgentNav() {
     <div className="agent-header">
       <div className="agent-header-left">
         <button
-          onClick={() => router.back()}
+          onClick={goBack}
           className="agent-nav-btn"
           title="Volver atras"
         >
-          &#8592; Volver
+          Volver
         </button>
         <Link href="/agentes">
           <img src="https://adipa.cl/content/uploads/2022/10/logo-adipa.svg" alt="ADIPA" style={{ height: 28, marginLeft: 8 }} />
