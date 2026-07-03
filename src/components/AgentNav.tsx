@@ -30,23 +30,14 @@ export function AgentNav() {
         {links.map(({ href, label, exact }) => {
           const isActive = exact ? pathname === href : pathname.startsWith(href)
           return (
-            <Link
-              key={href}
-              href={href}
-              className={`agent-nav-btn ${isActive ? 'active' : ''}`}
-            >
+            <Link key={href} href={href} className={`agent-nav-btn ${isActive ? 'active' : ''}`}>
               {label}
             </Link>
           )
         })}
-        
-          href="/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="agent-nav-btn"
-        >
+        <Link href="/" target="_blank" className="agent-nav-btn">
           Ver sitio
-        </a>
+        </Link>
         <button className="agent-nav-btn" onClick={logout}>
           Cerrar sesion
         </button>
