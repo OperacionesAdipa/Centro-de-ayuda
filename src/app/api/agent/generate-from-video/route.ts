@@ -144,7 +144,6 @@ export async function POST(req: NextRequest) {
     const transcriptEntries = transcript ? parseTranscript(transcript) : []
     const transcriptText = transcriptEntries.map(e => `[${Math.floor(e.time)}s] ${e.text}`).join('\n')
     console.log(`Transcript entries: ${transcriptEntries.length}`)
-    console.log(`Transcript preview: ${transcriptText.slice(0, 200)}`)
 
     const created = []
 
@@ -181,7 +180,7 @@ Responde en JSON:
 
 Máximo 5 pasos. Solo incluye pasos donde hay algo visual importante que mostrar.
 Los timestamps deben ser números enteros positivos mayores a 0.
-Responde ÚNICAMENTE con el JSON, sin explicaciones.`,
+Responde ÚNICAMENTE con el JSON puro, sin bloques de código, sin markdown, sin \`\`\`.`,
           }],
         }),
       })
@@ -192,7 +191,12 @@ Responde ÚNICAMENTE con el JSON, sin explicaciones.`,
 
       let steps: { description: string; timestamp: number }[] = []
       try {
-        const parsed = JSON.parse(rawTimestampText)
+        const cleanedJson = rawTimestampText
+          .replace(/^```json\s*/i, '')
+          .replace(/^```\s*/i, '')
+          .replace(/\s*```$/i, '')
+          .trim()
+        const parsed = JSON.parse(cleanedJson)
         steps = parsed.steps ?? []
       } catch (e) {
         console.log(`Failed to parse steps JSON: ${e}`)
