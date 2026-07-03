@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { RichEditor } from '@/components/RichEditor'
+import { AgentNav } from '@/components/AgentNav'
 
 interface Article {
   id: number
@@ -25,6 +26,7 @@ interface Article {
 interface Category { id: number; name: string }
 interface Section { id: number; category_id: number; name: string }
 interface Version { id: number; title: string; body: string; created_at: string }
+interface VimeoVideo { id: number; vimeo_id: string; title: string; vimeo_url: string }
 
 export default function EditarArticuloPage({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -32,10 +34,15 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
   const [categories, setCategories] = useState<Category[]>([])
   const [sections, setSections] = useState<Section[]>([])
   const [versions, setVersions] = useState<Version[]>([])
+  const [vimeoVideos, setVimeoVideos] = useState<VimeoVideo[]>([])
+  const [linkedVideos, setLinkedVideos] = useState<VimeoVideo[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [newUrl, setNewUrl] = useState('')
+  const [newVideoUrl, setNewVideoUrl] = useState('')
+  const [addingVideo, setAddingVideo] = useState(false)
   const [showVersions, setShowVersions] = useState(false)
   const [selectedVersion, setSelectedVersion] = useState<Version | null>(null)
   const [showPreview, setShowPreview] = useState(false)
@@ -55,16 +62,19 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
   }, [])
 
   async function loadData() {
-    const [artRes, catRes, secRes, verRes] = await Promise.all([
+    const [artRes, catRes, secRes, verRes, vimeoRes] = await Promise.all([
       fetch(`/api/agent/articles/${params.id}`),
       fetch('/api/agent/categories'),
       fetch('/api/agent/sections'),
       fetch(`/api/agent/articles/${params.id}/versions`),
+      fetch('/api/agent/vimeo'),
     ])
     const artData = await artRes.json()
     const catData = await catRes.json()
     const secData = await secRes.json()
     const verData = await verRes.json()
+    const vimeoData = await vimeoRes.json()
+
     setArticle({
       ...artData.article,
       source_urls: artData.article.source_urls ?? [],
@@ -73,6 +83,13 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
     setCategories(catData.categories ?? [])
     setSections(secData.sections ?? [])
     setVersions(verData.versions ?? [])
+
+    const allVideos = vimeoData.videos ?? []
+    setVimeoVideos(allVideos)
+    const linked = allVideos.filter((v: any) =>
+      v.articles?.some((a: any) => a.id === parseInt(params.id))
+    )
+    setLinkedVideos(linked)
     setLoading(false)
   }
 
@@ -99,6 +116,46 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
       setVersions(verData.versions ?? [])
     }
     setSaving(false)
+  }
+
+  async function deleteArticle() {
+    if (!confirm('¿Eliminar este artículo? Esta acción no se puede deshacer.')) return
+    setDeleting(true)
+    const res = await fetch(`/api/agent/articles/${params.id}`, { method: 'DELETE' })
+    if (res.ok) {
+      router.push('/agentes')
+    }
+    setDeleting(false)
+  }
+
+  async function addVideo() {
+    if (!newVideoUrl.trim()) return
+    setAddingVideo(true)
+    const res = await fetch('/api/agent/vimeo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: newVideoUrl.trim() }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      await fetch(`/api/agent/vimeo/${data.video.id}/articles`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ article_id: parseInt(params.id) }),
+      })
+      setNewVideoUrl('')
+      await loadData()
+    }
+    setAddingVideo(false)
+  }
+
+  async function unlinkVideo(videoId: number) {
+    await fetch(`/api/agent/vimeo/${videoId}/articles`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ article_id: parseInt(params.id) }),
+    })
+    await loadData()
   }
 
   async function restoreVersion(version: Version) {
@@ -163,16 +220,12 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
   if (showVersions) {
     return (
       <div className="agent-wrap">
-        <div className="agent-header">
-          <div className="agent-header-left">
-            <img src="https://adipa.cl/content/uploads/2022/10/logo-adipa.svg" alt="ADIPA" style={{ height: 28 }} />
-            <span className="agent-header-title">Historial de versiones</span>
-          </div>
-          <div className="agent-header-right">
+        <AgentNav />
+        <div className="agent-body">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 600 }}>Historial de versiones — {article.title}</h2>
             <button className="agent-nav-btn" onClick={() => { setShowVersions(false); setSelectedVersion(null) }}>Volver al editor</button>
           </div>
-        </div>
-        <div className="agent-body">
           {versions.length === 0 ? (
             <div className="agent-empty">No hay versiones anteriores guardadas.</div>
           ) : (
@@ -181,7 +234,7 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
                 {versions.map((v) => (
                   <button
                     key={v.id}
-                    className={`agent-side-card ${selectedVersion?.id === v.id ? 'active' : ''}`}
+                    className="agent-side-card"
                     style={{ textAlign: 'left', cursor: 'pointer', border: selectedVersion?.id === v.id ? '2px solid var(--purple)' : '0.5px solid var(--border)' }}
                     onClick={() => setSelectedVersion(v)}
                   >
@@ -192,14 +245,11 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
                   </button>
                 ))}
               </div>
-
               {selectedVersion && (
                 <div className="agent-side-card">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                     <div style={{ fontSize: 14, fontWeight: 600 }}>{selectedVersion.title}</div>
-                    <button className="agent-nav-btn primary" onClick={() => restoreVersion(selectedVersion)}>
-                      Restaurar esta versión
-                    </button>
+                    <button className="agent-nav-btn primary" onClick={() => restoreVersion(selectedVersion)}>Restaurar esta versión</button>
                   </div>
                   <div className="article-body" dangerouslySetInnerHTML={{ __html: selectedVersion.body }} />
                 </div>
@@ -213,13 +263,13 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
 
   return (
     <div className="agent-wrap">
-      <div className="agent-header">
-        <div className="agent-header-left">
-          <img src="https://adipa.cl/content/uploads/2022/10/logo-adipa.svg" alt="ADIPA" style={{ height: 28 }} />
-          <span className="agent-header-title">&#9998; Modo edición</span>
+      <AgentNav />
+
+      <div style={{ background: '#fff', borderBottom: '0.5px solid var(--border)', padding: '8px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+          Editando: <strong style={{ color: 'var(--dark)' }}>{article.title}</strong>
         </div>
-        <div className="agent-header-right">
-          <Link href="/agentes" className="agent-nav-btn">Volver</Link>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="agent-nav-btn" onClick={() => setShowVersions(true)}>
             &#128337; Versiones {versions.length > 0 && `(${versions.length})`}
           </button>
@@ -232,6 +282,9 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
           <button className="agent-nav-btn primary" onClick={() => save('published')} disabled={saving}>
             {saving ? 'Guardando...' : 'Publicar'}
           </button>
+          <button className="agent-nav-btn" onClick={deleteArticle} disabled={deleting} style={{ color: '#e24b4a', borderColor: '#e24b4a' }}>
+            {deleting ? 'Eliminando...' : '&#128465; Eliminar'}
+          </button>
         </div>
       </div>
 
@@ -241,44 +294,27 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
         <div className="agent-editor-main">
           <div className="agent-field">
             <label className="agent-label">Título</label>
-            <input
-              className="agent-input"
-              type="text"
-              value={article.title}
-              onChange={(e) => setArticle({ ...article, title: e.target.value })}
-            />
+            <input className="agent-input" type="text" value={article.title} onChange={(e) => setArticle({ ...article, title: e.target.value })} />
           </div>
-
           <div className="agent-field">
             <label className="agent-label">Contenido</label>
-            <RichEditor
-              content={article.body}
-              onChange={(html) => setArticle({ ...article, body: html })}
-            />
+            <RichEditor content={article.body} onChange={(html) => setArticle({ ...article, body: html })} />
           </div>
         </div>
 
         <div className="agent-editor-side">
           <div className="agent-side-card">
             <div className="agent-side-title">Categoría y sección</div>
-            <select
-              className="agent-select"
-              value={article.category_id}
-              onChange={(e) => {
-                const cat = categories.find(c => c.id === Number(e.target.value))
-                setArticle({ ...article, category_id: Number(e.target.value), category_name: cat?.name ?? '' })
-              }}
-            >
+            <select className="agent-select" value={article.category_id} onChange={(e) => {
+              const cat = categories.find(c => c.id === Number(e.target.value))
+              setArticle({ ...article, category_id: Number(e.target.value), category_name: cat?.name ?? '' })
+            }}>
               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
-            <select
-              className="agent-select"
-              value={article.section_id}
-              onChange={(e) => {
-                const sec = sections.find(s => s.id === Number(e.target.value))
-                setArticle({ ...article, section_id: Number(e.target.value), section_name: sec?.name ?? '' })
-              }}
-            >
+            <select className="agent-select" value={article.section_id} onChange={(e) => {
+              const sec = sections.find(s => s.id === Number(e.target.value))
+              setArticle({ ...article, section_id: Number(e.target.value), section_name: sec?.name ?? '' })
+            }}>
               {filteredSections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
@@ -295,28 +331,18 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
                 { label: 'faq', name: 'FAQ' },
               ].map(({ label, name }) => (
                 <label key={label} className="agent-check-label">
-                  <input
-                    type="checkbox"
-                    checked={article.label_names.includes(label)}
-                    onChange={() => toggleLabel(label)}
-                  />
+                  <input type="checkbox" checked={article.label_names.includes(label)} onChange={() => toggleLabel(label)} />
                   {name}
                 </label>
               ))}
             </div>
-            <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
-              Si no seleccionas ningún país, el artículo se mostrará en todos.
-            </p>
+            <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>Si no seleccionas ningún país, el artículo se mostrará en todos.</p>
           </div>
 
           <div className="agent-side-card">
             <div className="agent-side-title">Opciones</div>
             <label className="agent-check-label">
-              <input
-                type="checkbox"
-                checked={article.promoted}
-                onChange={(e) => setArticle({ ...article, promoted: e.target.checked })}
-              />
+              <input type="checkbox" checked={article.promoted} onChange={(e) => setArticle({ ...article, promoted: e.target.checked })} />
               Artículo destacado
             </label>
           </div>
@@ -331,15 +357,25 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
               </div>
             ))}
             <div className="agent-url-add">
-              <input
-                className="agent-input"
-                type="url"
-                placeholder="https://adipa.cl/..."
-                value={newUrl}
-                onChange={(e) => setNewUrl(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && addUrl()}
-              />
+              <input className="agent-input" type="url" placeholder="https://adipa.cl/..." value={newUrl} onChange={(e) => setNewUrl(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addUrl()} />
               <button className="agent-nav-btn primary" onClick={addUrl}>Agregar</button>
+            </div>
+          </div>
+
+          <div className="agent-side-card">
+            <div className="agent-side-title">Videos de referencia</div>
+            <p className="agent-side-desc">Videos de Vimeo asociados a este artículo.</p>
+            {linkedVideos.map(v => (
+              <div key={v.id} className="agent-url-item">
+                <span className="agent-url-text">{v.title || v.vimeo_url}</span>
+                <button className="agent-url-remove" onClick={() => unlinkVideo(v.id)}>✕</button>
+              </div>
+            ))}
+            <div className="agent-url-add">
+              <input className="agent-input" type="url" placeholder="https://vimeo.com/..." value={newVideoUrl} onChange={(e) => setNewVideoUrl(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addVideo()} />
+              <button className="agent-nav-btn primary" onClick={addVideo} disabled={addingVideo}>
+                {addingVideo ? '...' : 'Agregar'}
+              </button>
             </div>
           </div>
 
