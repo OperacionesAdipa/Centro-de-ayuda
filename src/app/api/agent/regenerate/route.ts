@@ -55,62 +55,79 @@ async function takeTargetedScreenshot(url: string, targetText: string): Promise<
     })
 
     if (!res.ok) return null
-
     const buffer = await res.arrayBuffer()
     const fileName = `screenshot-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
-
-    const { error } = await supabaseAdmin.storage
-      .from('article-images')
-      .upload(fileName, buffer, { contentType: 'image/jpeg', upsert: true })
-
+    const { error } = await supabaseAdmin.storage.from('article-images').upload(fileName, buffer, { contentType: 'image/jpeg', upsert: true })
     if (error) return null
-
-    const { data } = supabaseAdmin.storage
-      .from('article-images')
-      .getPublicUrl(fileName)
-
+    const { data } = supabaseAdmin.storage.from('article-images').getPublicUrl(fileName)
     return data.publicUrl
   } catch {
     return null
   }
 }
 
-async function getExistingImageContexts(articleBody: string): Promise<{ src: string; context: string }[]> {
-  if (!articleBody) return []
+async function getVimeoTranscript(vimeoId: string): Promise<{ entries: { time: number; text: string }[]; raw: string }> {
+  try {
+    const res = await fetch(`https://api.vimeo.com/videos/${vimeoId}/texttracks`, {
+      headers: {
+        Authorization: `Bearer ${process.env.VIMEO_TOKEN}`,
+        Accept: 'application/vnd.vimeo.*+json;version=3.4',
+      },
+    })
+    if (!res.ok) return { entries: [], raw: '' }
+    const data = await res.json()
+    const track = data.data?.[0]
+    if (!track?.link) return { entries: [], raw: '' }
+    const trackRes = await fetch(track.link)
+    if (!trackRes.ok) return { entries: [], raw: '' }
+    const vtt = await trackRes.text()
 
-  const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi
-  const images: { src: string; context: string }[] = []
-  let match
-
-  while ((match = imgRegex.exec(articleBody)) !== null) {
-    const src = match[1]
-    const matchIndex = match.index
-    const surroundingText = articleBody
-      .slice(Math.max(0, matchIndex - 300), matchIndex + 300)
-      .replace(/<[^>]*>/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
-
-    images.push({ src, context: surroundingText })
+    const lines = vtt.split('\n')
+    const entries: { time: number; text: string }[] = []
+    let i = 0
+    while (i < lines.length) {
+      const line = lines[i].trim()
+      if (line.includes('-->')) {
+        const startTime = line.split('-->')[0].trim()
+        const parts = startTime.split(':')
+        let time = 0
+        if (parts.length === 3) {
+          time = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseFloat(parts[2])
+        } else {
+          time = parseInt(parts[0]) * 60 + parseFloat(parts[1])
+        }
+        const textLines: string[] = []
+        i++
+        while (i < lines.length && lines[i].trim() !== '') {
+          textLines.push(lines[i].trim())
+          i++
+        }
+        const text = textLines.join(' ').replace(/<[^>]*>/g, '')
+        if (text) entries.push({ time, text })
+      }
+      i++
+    }
+    return { entries, raw: entries.map(e => `[${Math.floor(e.time)}s] ${e.text}`).join('\n') }
+  } catch {
+    return { entries: [], raw: '' }
   }
-
-  return images
 }
 
-async function takeScreenshotForContext(url: string, context: string): Promise<string | null> {
+async function getVimeoThumbnailAtTime(vimeoId: string, timestamp: number): Promise<string | null> {
   try {
-    const words = context
-      .replace(/<[^>]*>/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .split(' ')
-      .filter(w => w.length > 4)
-      .slice(0, 3)
-      .join(' ')
-
-    if (!words) return null
-
-    return await takeTargetedScreenshot(url, words)
+    const res = await fetch(`https://api.vimeo.com/videos/${vimeoId}/pictures`, {
+      headers: {
+        Authorization: `Bearer ${process.env.VIMEO_TOKEN}`,
+        Accept: 'application/vnd.vimeo.*+json;version=3.4',
+      },
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    const picture = data.data?.[0]
+    if (!picture) return null
+    const sizes = picture.sizes ?? []
+    const large = sizes.find((s: any) => s.width >= 1280) ?? sizes[sizes.length - 1]
+    return large?.link ?? null
   } catch {
     return null
   }
@@ -120,43 +137,19 @@ async function getNavigationPath(url: string): Promise<string | null> {
   try {
     const urlObj = new URL(url)
     const origin = urlObj.origin
-
-    const homeRes = await fetch(origin, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ADIPA-Bot/1.0)' },
-    })
+    const homeRes = await fetch(origin, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ADIPA-Bot/1.0)' } })
     if (!homeRes.ok) return null
-
     const homeHtml = await homeRes.text()
-    const navHtml = homeHtml
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-      .slice(0, 5000)
-
+    const navHtml = homeHtml.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').slice(0, 5000)
     const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY!,
-        'anthropic-version': '2023-06-01',
-      },
+      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY!, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 300,
-        messages: [{
-          role: 'user',
-          content: `Analiza la navegación de este sitio web y determina cómo llegar a la URL: ${url}
-
-HTML del sitio principal (${origin}):
-${navHtml}
-
-Responde ÚNICAMENTE con los pasos de navegación en formato simple, por ejemplo:
-"Haz clic en 'Recursos' en el menú principal, luego selecciona 'Glosario'"
-
-Si no puedes determinar la ruta, responde: "none"`,
-        }],
+        max_tokens: 200,
+        messages: [{ role: 'user', content: `Analiza la navegación de este sitio y determina cómo llegar a: ${url}\n\nHTML: ${navHtml}\n\nResponde ÚNICAMENTE con los pasos, ejemplo: "Haz clic en 'Recursos', luego 'Glosario'". Si no puedes determinarlo, responde: "none"` }],
       }),
     })
-
     const claudeData = await claudeRes.json()
     const navPath = claudeData.content?.[0]?.text?.trim()
     return navPath === 'none' ? null : navPath
@@ -166,57 +159,28 @@ Si no puedes determinar la ruta, responde: "none"`,
 }
 
 function cleanHtml(text: string): string {
-  return text
-    .replace(/^```html\s*/i, '')
-    .replace(/^```\s*/i, '')
-    .replace(/\s*```$/i, '')
-    .trim()
+  return text.replace(/^```html\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim()
 }
 
 function getAdipaUrlForCountry(url: string, countryLabel: string): string {
-  const countryDomains: Record<string, string> = {
-    pais_chile: 'adipa.cl',
-    pais_mexico: 'adipa.mx',
-    pais_colombia: 'adipa.co',
-    pais_argentina: 'adipa.ar',
-  }
+  const countryDomains: Record<string, string> = { pais_chile: 'adipa.cl', pais_mexico: 'adipa.mx', pais_colombia: 'adipa.co', pais_argentina: 'adipa.ar' }
   const domain = countryDomains[countryLabel]
   if (!domain) return url
-  return url
-    .replace('adipa.cl', domain)
-    .replace('adipa.mx', domain)
-    .replace('adipa.co', domain)
-    .replace('adipa.ar', domain)
+  return url.replace('adipa.cl', domain).replace('adipa.mx', domain).replace('adipa.co', domain).replace('adipa.ar', domain)
 }
 
 export async function POST(req: NextRequest) {
   try {
     const { url_id } = await req.json()
+    if (!url_id) return NextResponse.json({ error: 'Falta url_id' }, { status: 400 })
 
-    if (!url_id) {
-      return NextResponse.json({ error: 'Falta url_id' }, { status: 400 })
-    }
+    const { data: urlData, error: urlError } = await supabaseAdmin.from('source_urls').select('*').eq('id', url_id).single()
+    if (urlError || !urlData) return NextResponse.json({ error: 'URL no encontrada' }, { status: 404 })
 
-    const { data: urlData, error: urlError } = await supabaseAdmin
-      .from('source_urls')
-      .select('*')
-      .eq('id', url_id)
-      .single()
-
-    if (urlError || !urlData) {
-      return NextResponse.json({ error: 'URL no encontrada' }, { status: 404 })
-    }
-
-    const pageRes = await fetch(urlData.url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ADIPA-Bot/1.0)' },
-    })
-
-    if (!pageRes.ok) {
-      return NextResponse.json({ error: `No se pudo leer la URL: ${pageRes.status}` }, { status: 400 })
-    }
+    const pageRes = await fetch(urlData.url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ADIPA-Bot/1.0)' } })
+    if (!pageRes.ok) return NextResponse.json({ error: `No se pudo leer la URL: ${pageRes.status}` }, { status: 400 })
 
     const html = await pageRes.text()
-
     const linkRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi
     const links: { text: string; href: string }[] = []
     let linkMatch
@@ -240,29 +204,15 @@ export async function POST(req: NextRequest) {
       .trim()
       .slice(0, 8000)
 
-    const filteredLinks = links
-      .filter(l => !l.href.includes('zendesk.com'))
-      .slice(0, 30)
-
+    const filteredLinks = links.filter(l => !l.href.includes('zendesk.com')).slice(0, 30)
     const linksText = filteredLinks.map(l => `- "${l.text}" → ${l.href}`).join('\n')
     const navigationPath = await getNavigationPath(urlData.url)
 
-    const { data: articleUrlData } = await supabaseAdmin
-      .from('article_source_urls')
-      .select('article_id')
-      .eq('source_url_id', url_id)
-
+    const { data: articleUrlData } = await supabaseAdmin.from('article_source_urls').select('article_id').eq('source_url_id', url_id)
     const articleIds = (articleUrlData ?? []).map((r: any) => r.article_id)
+    if (articleIds.length === 0) return NextResponse.json({ error: 'No hay artículos asociados a esta URL' }, { status: 400 })
 
-    if (articleIds.length === 0) {
-      return NextResponse.json({ error: 'No hay artículos asociados a esta URL' }, { status: 400 })
-    }
-
-    const { data: articles } = await supabaseAdmin
-      .from('articles')
-      .select('*')
-      .in('id', articleIds)
-
+    const { data: articles } = await supabaseAdmin.from('articles').select('*').in('id', articleIds)
     const allArticleTitles = (articles ?? []).map((a: any) => a.title)
     const results = []
 
@@ -271,81 +221,120 @@ export async function POST(req: NextRequest) {
       const countryLabel = (article.label_names ?? []).find((l: string) => l.startsWith('pais_')) ?? 'pais_chile'
       const localizedUrl = getAdipaUrlForCountry(urlData.url, countryLabel)
 
-      const existingImages = await getExistingImageContexts(article.body ?? '')
-      const imageReplacements: { oldSrc: string; newSrc: string }[] = []
+      const { data: linkedVideos } = await supabaseAdmin
+        .from('article_vimeo_videos')
+        .select('vimeo_video_id, vimeo_videos(id, vimeo_id, title, transcript)')
+        .eq('article_id', article.id)
 
-      for (const img of existingImages.slice(0, 3)) {
-        const newScreenshot = await takeScreenshotForContext(urlData.url, img.context)
-        if (newScreenshot) {
-          imageReplacements.push({ oldSrc: img.src, newSrc: newScreenshot })
+      const hasVideo = linkedVideos && linkedVideos.length > 0
+      let transcriptText = ''
+      let vimeoId = ''
+      let videoTitle = ''
+
+      if (hasVideo) {
+        const videoData = (linkedVideos[0] as any).vimeo_videos
+        vimeoId = videoData?.vimeo_id ?? ''
+        videoTitle = videoData?.title ?? ''
+
+        if (videoData?.transcript) {
+          const lines = videoData.transcript.split('\n')
+          const entries: { time: number; text: string }[] = []
+          let i = 0
+          while (i < lines.length) {
+            const line = lines[i].trim()
+            if (line.includes('-->')) {
+              const startTime = line.split('-->')[0].trim()
+              const parts = startTime.split(':')
+              let time = 0
+              if (parts.length === 3) time = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseFloat(parts[2])
+              else time = parseInt(parts[0]) * 60 + parseFloat(parts[1])
+              const textLines: string[] = []
+              i++
+              while (i < lines.length && lines[i].trim() !== '') { textLines.push(lines[i].trim()); i++ }
+              const text = textLines.join(' ').replace(/<[^>]*>/g, '')
+              if (text) entries.push({ time, text })
+            }
+            i++
+          }
+          transcriptText = entries.map(e => `[${Math.floor(e.time)}s] ${e.text}`).join('\n')
+        } else {
+          const transcript = await getVimeoTranscript(vimeoId)
+          transcriptText = transcript.raw
         }
       }
 
       const analysisRes = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.ANTHROPIC_API_KEY!,
-          'anthropic-version': '2023-06-01',
-        },
+        headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY!, 'anthropic-version': '2023-06-01' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
-          max_tokens: 300,
+          max_tokens: 400,
           messages: [{
             role: 'user',
             content: `Analiza si el artículo "${article.title}" requiere imágenes para ser explicado correctamente.
 
-Contenido de la página de referencia:
+Contenido de referencia:
 ${cleanText.slice(0, 2000)}
 
-Responde en JSON con este formato exacto:
+${transcriptText ? `Transcripción del video:\n${transcriptText.slice(0, 1000)}` : ''}
+
+Responde en JSON:
 {
+  "needsImages": true o false,
   "needsScreenshot": true o false,
-  "targetText": "texto exacto que aparece en la página y debe ser resaltado en el screenshot, o null si no necesita screenshot"
+  "targetText": "texto clave en la página para screenshot, o null",
+  "videoTimestamps": [{"time": segundos, "description": "qué se muestra"}] o []
 }
 
-needsScreenshot debe ser true SOLO si el artículo explica un proceso visual paso a paso.
-needsScreenshot debe ser false si el artículo es informativo.
+needsImages: true si el artículo explica un proceso visual con pasos.
+needsScreenshot: true solo si NO hay video y se necesita imagen de la URL.
+videoTimestamps: solo si hay video, lista de momentos clave para screenshots.
 
-Responde ÚNICAMENTE con el JSON, sin explicaciones.`,
+Responde ÚNICAMENTE con JSON.`,
           }],
         }),
       })
 
       const analysisData = await analysisRes.json()
+      let needsImages = false
       let needsScreenshot = false
       let targetText = null
+      let videoTimestamps: { time: number; description: string }[] = []
 
       try {
         const analysis = JSON.parse(analysisData.content?.[0]?.text ?? '{}')
+        needsImages = analysis.needsImages ?? false
         needsScreenshot = analysis.needsScreenshot ?? false
         targetText = analysis.targetText ?? null
+        videoTimestamps = analysis.videoTimestamps ?? []
       } catch {}
 
-      let screenshot: string | null = null
-      if (imageReplacements.length === 0) {
-        if (needsScreenshot && targetText) {
-          screenshot = await takeTargetedScreenshot(urlData.url, targetText)
-        } else if (existingImages.length > 0) {
-          screenshot = await takeTargetedScreenshot(urlData.url, cleanText.split(' ').filter(w => w.length > 5).slice(0, 3).join(' '))
+      const screenshots: { description: string; url: string }[] = []
+
+      if (hasVideo && vimeoId && videoTimestamps.length > 0) {
+        for (const ts of videoTimestamps.slice(0, 5)) {
+          const thumbnail = await getVimeoThumbnailAtTime(vimeoId, ts.time)
+          if (thumbnail) {
+            screenshots.push({ description: ts.description, url: thumbnail })
+          }
+        }
+      } else if (!hasVideo && needsScreenshot && targetText) {
+        const screenshot = await takeTargetedScreenshot(urlData.url, targetText)
+        if (screenshot) {
+          screenshots.push({ description: targetText, url: screenshot })
         }
       }
 
-      const imageReplacementsText = imageReplacements.length > 0
-        ? `IMÁGENES ACTUALIZADAS (úsalas en los mismos lugares donde estaban las originales):
-${imageReplacements.map((r, i) => `- Imagen ${i + 1}: <img src="${r.newSrc}" alt="Captura de pantalla" style="max-width:100%; border-radius:8px; margin:12px 0; border: 1px solid #e5e7eb;">`).join('\n')}`
-        : screenshot
-        ? `IMAGEN DISPONIBLE:
-<img src="${screenshot}" alt="Captura de pantalla" style="max-width:100%; border-radius:8px; margin:12px 0; border: 1px solid #e5e7eb;">`
+      const screenshotsText = screenshots.length > 0
+        ? `IMÁGENES DISPONIBLES (úsalas en los pasos correspondientes):
+${screenshots.map((s, i) => `- Paso relacionado con "${s.description}": <img src="${s.url}" alt="${s.description}" style="max-width:100%; border-radius:8px; margin:12px 0; border: 1px solid #e5e7eb;">`).join('\n')}`
         : ''
+
+      const needsImagesPending = needsImages && !hasVideo && screenshots.length === 0
 
       const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.ANTHROPIC_API_KEY!,
-          'anthropic-version': '2023-06-01',
-        },
+        headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY!, 'anthropic-version': '2023-06-01' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
           max_tokens: 4000,
@@ -360,36 +349,35 @@ Título: ${article.title}
 Contenido actual:
 ${article.body?.replace(/<[^>]*>/g, ' ').slice(0, 1500)}
 
-OTROS ARTÍCULOS RELACIONADOS A ESTA MISMA URL (NO incluyas información de estos temas):
+OTROS ARTÍCULOS RELACIONADOS (NO incluyas información de estos temas):
 ${otherArticleTitles.map((t: string, i: number) => `${i + 1}. ${t}`).join('\n')}
 
-CONTENIDO ACTUALIZADO DE LA PÁGINA DE REFERENCIA:
+CONTENIDO DE LA PÁGINA DE REFERENCIA:
 ${cleanText}
 
 URL DE REFERENCIA PARA ESTE PAÍS: ${localizedUrl}
 
-${navigationPath ? `CÓMO LLEGAR A ESTA PÁGINA DESDE EL SITIO PRINCIPAL:
-${navigationPath}
-Incluye estos pasos de navegación al inicio del artículo si es relevante.` : ''}
+${navigationPath ? `CÓMO LLEGAR A ESTA PÁGINA:\n${navigationPath}\nIncluye estos pasos si es relevante.` : ''}
 
-LINKS DISPONIBLES EN LA PÁGINA (úsalos cuando hagas referencia a algo):
+${transcriptText ? `TRANSCRIPCIÓN DEL VIDEO TUTORIAL "${videoTitle}":\n${transcriptText.slice(0, 4000)}` : ''}
+
+LINKS DISPONIBLES:
 ${linksText}
 
-${imageReplacementsText}
+${screenshotsText}
 
 INSTRUCCIONES:
 - Responde únicamente la pregunta: "${article.title}"
-- NO incluyas información que corresponda a los otros artículos listados arriba
+- NO incluyas información de los otros artículos listados
 - Escribe en español latinoamericano, tono amigable y claro
-- Usa formato HTML con <p>, <strong>, <ul>, <li>, <ol> según corresponda
-- Si hay pasos a seguir, usa una lista numerada <ol>
-- Cuando hagas referencia al sitio web usa siempre: ${localizedUrl}
-- Cuando hagas referencia a algo de la página, incluye el hipervínculo usando <a href="URL">texto</a>
-- NUNCA incluyas links que contengan "zendesk.com"
-- NUNCA incluyas ejemplos con fechas específicas, nombres de eventos, precios puntuales o información que pueda expirar. Describe los procesos de forma genérica.
-- ${imageReplacements.length > 0 ? 'Incluye las imágenes actualizadas en los mismos lugares donde estaban las originales' : screenshot ? 'Incluye la imagen en el lugar más relevante del artículo' : 'No incluyas imágenes'}
+- Usa <ol> para pasos numerados, <p> para párrafos, <strong> para énfasis
+- ${screenshots.length > 0 ? 'Incluye cada imagen inmediatamente después del paso que ilustra' : needsImagesPending ? 'Indica con [IMAGEN PENDIENTE: descripción] donde debería ir una imagen' : 'No incluyas imágenes'}
+- Cuando hagas referencia al sitio usa: ${localizedUrl}
+- Incluye hipervínculos con <a href="URL">texto</a> cuando corresponda
+- NUNCA incluyas links de zendesk.com
+- NUNCA incluyas ejemplos con fechas, nombres de eventos específicos o información que pueda expirar
 - NO incluyas el título en el HTML
-- Responde ÚNICAMENTE con HTML puro, sin bloques de código, sin markdown, sin \`\`\``,
+- Responde ÚNICAMENTE con HTML puro, sin markdown, sin \`\`\``,
           }],
         }),
       })
@@ -403,17 +391,15 @@ INSTRUCCIONES:
         .update({
           body: newBody,
           status: 'pending_review',
+          needs_images: needsImagesPending,
           updated_at: new Date().toISOString(),
         })
         .eq('id', article.id)
 
-      results.push({ id: article.id, title: article.title, screenshot: !!screenshot, imagesReplaced: imageReplacements.length })
+      results.push({ id: article.id, title: article.title, hasVideo, screenshotsCount: screenshots.length, needsImages: needsImagesPending })
     }
 
-    await supabaseAdmin
-      .from('source_urls')
-      .update({ last_fetched_at: new Date().toISOString() })
-      .eq('id', url_id)
+    await supabaseAdmin.from('source_urls').update({ last_fetched_at: new Date().toISOString() }).eq('id', url_id)
 
     return NextResponse.json({ ok: true, updated: results })
   } catch (e: any) {
