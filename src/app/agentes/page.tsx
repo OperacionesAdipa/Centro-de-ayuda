@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { AgentNav } from '@/components/AgentNav'
 
 interface Article {
   id: number
@@ -34,7 +35,7 @@ export default function AgentesPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token }),
     }).then((r) => {
-      if (!r.ok) { router.push('/acceso') }
+      if (!r.ok) router.push('/acceso')
       else loadArticles()
     })
   }, [])
@@ -48,14 +49,9 @@ export default function AgentesPage() {
     setLoading(false)
   }
 
-  function logout() {
-    localStorage.removeItem('agent_token')
-    router.push('/acceso')
-  }
-
   const filtered = articles.filter((a) => {
     const matchSearch = a.title.toLowerCase().includes(search.toLowerCase())
-    const matchStatus = filterStatus === 'all' || a.status === filterStatus
+    const matchStatus = filterStatus === 'all' || a.status === filterStatus || (filterStatus === 'no_url' && (!a as any).source_urls?.length)
     const matchCat = filterCat === 'all' || a.category_name === filterCat
     return matchSearch && matchStatus && matchCat
   })
@@ -64,18 +60,7 @@ export default function AgentesPage() {
 
   return (
     <div className="agent-wrap">
-      <div className="agent-header">
-        <div className="agent-header-left">
-          <img src="https://adipa.cl/content/uploads/2022/10/logo-adipa.svg" alt="ADIPA" style={{ height: 28 }} />
-          <span className="agent-header-title">Portal de agentes</span>
-        </div>
-        <div className="agent-header-right">
-          <Link href="/" className="agent-nav-btn" target="_blank">Ver sitio</Link>
-          <Link href="/agentes/ia" className="agent-nav-btn">🤖 IA</Link>
-          <Link href="/agentes/nuevo" className="agent-nav-btn primary">+ Nuevo artículo</Link>
-          <button className="agent-nav-btn" onClick={logout}>Cerrar sesión</button>
-        </div>
-      </div>
+      <AgentNav />
 
       <div className="agent-body">
         <div className="agent-stats">
@@ -93,6 +78,7 @@ export default function AgentesPage() {
             <option value="published">Publicados</option>
             <option value="draft">Borradores</option>
             <option value="pending_review">Pendientes de revisión</option>
+            <option value="no_url">Sin URL asociada</option>
           </select>
           <select className="agent-select" value={filterCat} onChange={(e) => setFilterCat(e.target.value)}>
             <option value="all">Todas las categorías</option>
