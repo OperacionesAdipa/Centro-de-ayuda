@@ -9,6 +9,7 @@ export default function EditarDesdeArticuloPage({ params }: { params: { slug: st
   useEffect(() => {
     const token = localStorage.getItem('agent_token')
     const articleId = params.slug.split('-')[0]
+    const returnUrl = `/articulo/${params.slug}`
 
     if (!token) {
       localStorage.setItem('redirect_after_login', `/agentes/editar/${articleId}`)
@@ -25,6 +26,7 @@ export default function EditarDesdeArticuloPage({ params }: { params: { slug: st
         localStorage.setItem('redirect_after_login', `/agentes/editar/${articleId}`)
         router.push('/acceso')
       } else {
+        localStorage.setItem('agent_return_url', returnUrl)
         router.push(`/agentes/editar/${articleId}`)
       }
     })
