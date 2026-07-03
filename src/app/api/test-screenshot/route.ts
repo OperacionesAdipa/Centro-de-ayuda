@@ -13,32 +13,18 @@ export async function GET(req: NextRequest) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        url: `https://player.vimeo.com/video/${vimeoId}?autoplay=1&muted=1`,
+        url: `https://player.vimeo.com/video/${vimeoId}?autoplay=1&muted=1&t=${timestamp}`,
         options: {
           type: 'jpeg',
           quality: 90,
           fullPage: false,
+          clip: {
+            x: 0,
+            y: 0,
+            width: 1280,
+            height: 720,
+          },
         },
-        waitFor: {
-          selector: 'video',
-          timeout: 15000,
-        },
-        evaluate: `
-          new Promise((resolve) => {
-            const video = document.querySelector('video');
-            if (video) {
-              video.muted = true;
-              video.currentTime = ${timestamp};
-              video.addEventListener('seeked', () => {
-                video.pause();
-                setTimeout(resolve, 500);
-              }, { once: true });
-              setTimeout(resolve, 5000);
-            } else {
-              setTimeout(resolve, 3000);
-            }
-          })
-        `,
       }),
     })
 
