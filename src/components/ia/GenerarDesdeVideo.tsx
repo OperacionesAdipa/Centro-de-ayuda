@@ -105,34 +105,49 @@ export function GenerarDesdeVideo() {
 
     const questionList = questions.split('\n').map(q => q.trim()).filter(q => q.length > 0)
 
-    const res = await fetch('/api/agent/generate-from-video', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        video_id: videoId,
-        questions: questionList,
-        category_id: categoryId,
-        category_name: categoryName,
-        section_id: sectionId,
-        section_name: sectionName,
-        label_names: selectedCountries,
-      }),
-    })
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 280000)
 
-    const data = await res.json()
-    if (res.ok) {
-      const articlesWithBody = await Promise.all(
-        data.created.map(async (a: { id: number; title: string }) => {
-          const artRes = await fetch(`/api/agent/articles/${a.id}`)
-          const artData = await artRes.json()
-          return { id: a.id, title: a.title, body: artData.article?.body ?? '', published: false }
-        })
-      )
-      setCreatedArticles(articlesWithBody)
-      setQuestions('')
-    } else {
-      setError(`Error: ${data.error}`)
+      const res = await fetch('/api/agent/generate-from-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          video_id: videoId,
+          questions: questionList,
+          category_id: categoryId,
+          category_name: categoryName,
+          section_id: sectionId,
+          section_name: sectionName,
+          label_names: selectedCountries,
+        }),
+        signal: controller.signal,
+      })
+
+      clearTimeout(timeoutId)
+
+      const data = await res.json()
+      if (res.ok) {
+        const articlesWithBody = await Promise.all(
+          data.created.map(async (a: { id: number; title: string }) => {
+            const artRes = await fetch(`/api/agent/articles/${a.id}`)
+            const artData = await artRes.json()
+            return { id: a.id, title: a.title, body: artData.article?.body ?? '', published: false }
+          })
+        )
+        setCreatedArticles(articlesWithBody)
+        setQuestions('')
+      } else {
+        setError(`Error: ${data.error}`)
+      }
+    } catch (e: any) {
+      if (e.name === 'AbortError') {
+        setError('La generación tardó demasiado. Los artículos pueden haberse creado — revisa el portal.')
+      } else {
+        setError(`Error: ${e.message}`)
+      }
     }
+
     setGenerating(false)
   }
 
@@ -164,7 +179,7 @@ export function GenerarDesdeVideo() {
         <div style={{ maxWidth: 800 }}>
           <div className="agent-side-card" style={{ marginBottom: 16, borderTop: '3px solid #0ea5e9' }}>
             <div className="agent-side-title">Video de Vimeo</div>
-            <p className="agent-side-desc">Ingresa la URL del video desde el que se generarán los artículos. Se guardará automáticamente en la sección de actualizar artículos con video.</p>
+            <p className="agent-side-desc">Ingresa la URL del video desde el que se generarán los artículos. Se guardará automáticamente en "Actualizar artículos con video".</p>
             {!videoId ? (
               <div style={{ display: 'flex', gap: 10 }}>
                 <input
@@ -205,7 +220,7 @@ export function GenerarDesdeVideo() {
                 {suggesting ? 'Sugiriendo...' : 'Sugerir desde transcripción'}
               </button>
             </div>
-            <p className="agent-side-desc">Escribe una pregunta por línea o usa "Sugerir desde transcripción".</p>
+            <p className="agent-side-desc">Escribe una pregunta por línea o usa "Sugerir desde transcripción" para generarlas automáticamente.</p>
             <textarea
               className="agent-textarea"
               placeholder={`¿Cómo inicio sesión?\n¿Cómo actualizo mis datos?\n¿Cómo cambio mi contraseña?`}
@@ -215,7 +230,7 @@ export function GenerarDesdeVideo() {
             />
             {questions.trim() && (
               <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
-                {questions.split('\n').filter(q => q.trim()).length} artículo(s) se crearán
+                {questions.split('\n').filter(q => q.trim()).length} artículo(s) se crearán con capturas de pantalla del video
               </div>
             )}
           </div>
@@ -267,12 +282,18 @@ export function GenerarDesdeVideo() {
             </div>
           )}
 
+          {generating && (
+            <div style={{ marginBottom: 12, padding: '14px 18px', borderRadius: 8, fontSize: 13, background: '#e0f2fe', color: '#0284c7' }}>
+              Generando artículos con capturas de pantalla del video... Esto puede tomar 2-5 minutos dependiendo del número de preguntas.
+            </div>
+          )}
+
           <button
             style={{ background: videoId && questions.trim() && !generating ? '#0ea5e9' : '#ccc', color: '#fff', border: 'none', borderRadius: 99, padding: '10px 24px', fontSize: 14, cursor: videoId && questions.trim() && !generating ? 'pointer' : 'not-allowed' }}
             onClick={generate}
             disabled={generating || !videoId || !questions.trim()}
           >
-            {generating ? 'Generando artículos...' : 'Generar artículos desde video'}
+            {generating ? 'Generando artículos con capturas...' : 'Generar artículos desde video'}
           </button>
         </div>
       ) : (
