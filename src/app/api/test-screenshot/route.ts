@@ -3,48 +3,29 @@ import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(req: NextRequest) {
   try {
-    const browserlessKey = process.env.BROWSERLESS_API_KEY
-    if (!browserlessKey) return NextResponse.json({ error: 'No hay API key' })
+    const vimeoId = req.nextUrl.searchParams.get('id') ?? '1202296335'
+    const timestamp = parseInt(req.nextUrl.searchParams.get('t') ?? '30')
 
-    const vimeoId = req.nextUrl.searchParams.get('id') ?? '1093834589'
-    const timestamp = parseInt(req.nextUrl.searchParams.get('t') ?? '10')
-
-    const playerUrl = `https://player.vimeo.com/video/${vimeoId}#t=${timestamp}s`
-
-    const res = await fetch(`https://chrome.browserless.io/screenshot?token=${browserlessKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        url: playerUrl,
-        options: {
-          type: 'jpeg',
-          quality: 90,
-          fullPage: false,
-        },
-        gotoOptions: {
-          waitUntil: 'networkidle2',
-          timeout: 30000,
-        },
-      }),
+    const res = await fetch(`https://api.vimeo.com/videos/${vimeoId}?fields=pictures,duration`, {
+      headers: {
+        Authorization: `Bearer ${process.env.VIMEO_TOKEN}`,
+        Accept: 'application/vnd.vimeo.*+json;version=3.4',
+      },
     })
 
-    if (!res.ok) {
-      const err = await res.text()
-      return NextResponse.json({ ok: false, status: res.status, error: err })
-    }
+    if (!res.ok) return NextResponse.json({ error: `Vimeo API error: ${res.status}` })
 
-    const buffer = await res.arrayBuffer()
+    const data = await res.json()
+    const pictures = data.pictures?.sizes ?? []
+    const largest = pictures[pictures.length - 1]
 
-    const fileName = `test-${vimeoId}-${timestamp}.jpg`
-    const { error } = await supabaseAdmin.storage
-      .from('article-images')
-      .upload(fileName, buffer, { contentType: 'image/jpeg', upsert: true })
-
-    if (error) return NextResponse.json({ ok: false, error: error.message, size: buffer.byteLength })
-
-    const { data } = supabaseAdmin.storage.from('article-images').getPublicUrl(fileName)
-
-    return NextResponse.json({ ok: true, size: buffer.byteLength, url: data.publicUrl })
+    return NextResponse.json({
+      duration: data.duration,
+      timestamp,
+      picturesCount: pictures.length,
+      largestPicture: largest?.link ?? null,
+      allSizes: pictures.map((p: any) => ({ width: p.width, link: p.link })),
+    })
   } catch (e: any) {
     return NextResponse.json({ error: e.message })
   }
