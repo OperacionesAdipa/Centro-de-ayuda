@@ -259,3 +259,4 @@ INSTRUCCIONES:
     return NextResponse.json({ error: e.message }, { status: 500 })
   }
 }
+
