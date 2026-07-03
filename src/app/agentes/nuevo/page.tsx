@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { AgentNav } from '@/components/AgentNav'
+import { RichEditor } from '@/components/RichEditor'
 
 interface Category {
   id: number
@@ -108,13 +109,11 @@ export default function NuevoArticuloPage() {
 
   return (
     <div className="agent-wrap">
-      <div className="agent-header">
-        <div className="agent-header-left">
-          <img src="https://adipa.cl/content/uploads/2022/10/logo-adipa.svg" alt="ADIPA" style={{ height: 28 }} />
-          <span className="agent-header-title">Nuevo artículo</span>
-        </div>
-        <div className="agent-header-right">
-          <Link href="/agentes" className="agent-nav-btn">Volver</Link>
+      <AgentNav />
+
+      <div style={{ background: '#fff', borderBottom: '0.5px solid var(--border)', padding: '8px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ fontSize: 13, color: 'var(--muted)' }}>Nuevo artículo</div>
+        <div style={{ display: 'flex', gap: 8 }}>
           <button className="agent-nav-btn" onClick={() => save('draft')} disabled={saving}>
             Guardar borrador
           </button>
@@ -138,22 +137,12 @@ export default function NuevoArticuloPage() {
           </div>
 
           <div className="agent-field">
-            <label className="agent-label">Contenido (HTML)</label>
-            <textarea
-              className="agent-textarea"
-              placeholder="Escribe el contenido del artículo en HTML..."
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              rows={20}
+            <label className="agent-label">Contenido</label>
+            <RichEditor
+              content={body}
+              onChange={(html) => setBody(html)}
             />
           </div>
-
-          {body && (
-            <div className="agent-field">
-              <label className="agent-label">Vista previa</label>
-              <div className="agent-preview article-body" dangerouslySetInnerHTML={{ __html: body }} />
-            </div>
-          )}
         </div>
 
         <div className="agent-editor-side">
@@ -189,14 +178,21 @@ export default function NuevoArticuloPage() {
           <div className="agent-side-card">
             <div className="agent-side-title">Países</div>
             <div className="agent-country-checks">
-              {['pais_chile', 'pais_mexico', 'pais_colombia', 'pais_argentina', 'pais_todos', 'faq'].map(label => (
+              {[
+                { label: 'pais_chile', name: 'Chile' },
+                { label: 'pais_mexico', name: 'México' },
+                { label: 'pais_colombia', name: 'Colombia' },
+                { label: 'pais_argentina', name: 'Argentina' },
+                { label: 'pais_todos', name: 'Todos los países' },
+                { label: 'faq', name: 'FAQ' },
+              ].map(({ label, name }) => (
                 <label key={label} className="agent-check-label">
                   <input
                     type="checkbox"
                     checked={labelNames.includes(label)}
                     onChange={() => toggleLabel(label)}
                   />
-                  {label.replace('pais_', '').charAt(0).toUpperCase() + label.replace('pais_', '').slice(1)}
+                  {name}
                 </label>
               ))}
             </div>
