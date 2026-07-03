@@ -18,6 +18,7 @@ interface CreatedArticle {
   id: number
   title: string
   body?: string
+  published?: boolean
 }
 
 export function GenerarArticulos() {
@@ -111,7 +112,7 @@ export function GenerarArticulos() {
         data.created.map(async (a: { id: number; title: string }) => {
           const artRes = await fetch(`/api/agent/articles/${a.id}`)
           const artData = await artRes.json()
-          return { id: a.id, title: a.title, body: artData.article?.body ?? '' }
+          return { id: a.id, title: a.title, body: artData.article?.body ?? '', published: false }
         })
       )
       setCreatedArticles(articlesWithBody)
@@ -125,12 +126,19 @@ export function GenerarArticulos() {
 
   async function publishArticle(id: number) {
     setPublishing(id)
-    await fetch(`/api/agent/articles/${id}`, {
+    const res = await fetch(`/api/agent/articles/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'published' }),
     })
-    setCreatedArticles(prev => prev.map(a => a.id === id ? { ...a, status: 'published' } : a))
+    if (res.ok) {
+      setCreatedArticles(prev => prev.map(a =>
+        a.id === id ? { ...a, published: true } : a
+      ))
+      if (previewArticle?.id === id) {
+        setPreviewArticle(prev => prev ? { ...prev, published: true } : null)
+      }
+    }
     setPublishing(null)
   }
 
@@ -258,7 +266,7 @@ export function GenerarArticulos() {
               </h3>
               <p style={{ fontSize: 13, color: 'var(--muted)' }}>Revisa cada artículo y publícalo cuando esté listo.</p>
             </div>
-            <button className="agent-nav-btn" onClick={() => setCreatedArticles([])}>
+            <button className="agent-nav-btn" onClick={() => { setCreatedArticles([]); setPreviewArticle(null) }}>
               Generar más artículos
             </button>
           </div>
@@ -269,41 +277,54 @@ export function GenerarArticulos() {
                 <div
                   key={art.id}
                   className="agent-side-card"
-                  style={{ cursor: 'pointer', border: previewArticle?.id === art.id ? '2px solid var(--purple)' : '0.5px solid var(--border)' }}
+                  style={{ cursor: 'pointer', border: previewArticle?.id === art.id ? '2px solid var(--purple)' : '0.5px solid var(--border)', opacity: art.published ? 0.6 : 1 }}
                   onClick={() => setPreviewArticle(art)}
                 >
                   <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--dark)', marginBottom: 8 }}>{art.title}</div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button
-                      className="agent-nav-btn primary"
-                      onClick={(e) => { e.stopPropagation(); publishArticle(art.id) }}
-                      disabled={publishing === art.id}
-                      style={{ fontSize: 11, padding: '4px 10px' }}
-                    >
-                      {publishing === art.id ? 'Publicando...' : 'Publicar'}
-                    </button>
-                    <Link
-                      href={`/agentes/editar/${art.id}`}
-                      className="agent-action-btn"
-                      style={{ fontSize: 11 }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      Editar
-                    </Link>
-                  </div>
+                  {art.published ? (
+                    <div style={{ fontSize: 12, color: '#3b6d11', background: '#eaf3de', padding: '4px 10px', borderRadius: 99, display: 'inline-block' }}>
+                      Publicado
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button
+                        className="agent-nav-btn primary"
+                        onClick={(e) => { e.stopPropagation(); publishArticle(art.id) }}
+                        disabled={publishing === art.id}
+                        style={{ fontSize: 11, padding: '4px 10px' }}
+                      >
+                        {publishing === art.id ? 'Publicando...' : 'Publicar'}
+                      </button>
+                      <Link
+                        href={`/agentes/editar/${art.id}`}
+                        className="agent-action-btn"
+                        style={{ fontSize: 11 }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Editar
+                      </Link>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
 
             {previewArticle && (
               <div className="agent-side-card" style={{ flex: 1 }}>
-                <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>{previewArticle.title}</h3>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <h3 style={{ fontSize: 16, fontWeight: 600 }}>{previewArticle.title}</h3>
+                  {previewArticle.published && (
+                    <div style={{ fontSize: 12, color: '#3b6d11', background: '#eaf3de', padding: '4px 10px', borderRadius: 99 }}>
+                      Publicado
+                    </div>
+                  )}
+                </div>
                 <div className="article-body" dangerouslySetInnerHTML={{ __html: previewArticle.body ?? '' }} />
               </div>
             )}
 
             {!previewArticle && (
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 14, border: '0.5px dashed var(--border)', borderRadius: 'var(--radius)' }}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 14, border: '0.5px dashed var(--border)', borderRadius: 'var(--radius)', minHeight: 300 }}>
                 Haz clic en un artículo para previsualizarlo
               </div>
             )}
