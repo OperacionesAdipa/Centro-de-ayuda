@@ -386,6 +386,7 @@ INSTRUCCIONES:
 - Cuando hagas referencia al sitio web usa siempre: ${localizedUrl}
 - Cuando hagas referencia a algo de la página, incluye el hipervínculo usando <a href="URL">texto</a>
 - NUNCA incluyas links que contengan "zendesk.com"
+- NUNCA incluyas ejemplos con fechas específicas, nombres de eventos, precios puntuales o información que pueda expirar. Describe los procesos de forma genérica.
 - ${imageReplacements.length > 0 ? 'Incluye las imágenes actualizadas en los mismos lugares donde estaban las originales' : screenshot ? 'Incluye la imagen en el lugar más relevante del artículo' : 'No incluyas imágenes'}
 - NO incluyas el título en el HTML
 - Responde ÚNICAMENTE con HTML puro, sin bloques de código, sin markdown, sin \`\`\``,
