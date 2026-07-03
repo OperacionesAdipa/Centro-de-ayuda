@@ -34,7 +34,7 @@ function parseTranscript(vtt: string): { time: number; text: string }[] {
   return entries
 }
 
-async function takeVimeoScreenshot(vimeoId: string, timestamp: number, description: string): Promise<string | null> {
+async function takeVimeoScreenshot(vimeoId: string, timestamp: number): Promise<string | null> {
   try {
     const createRes = await fetch(`https://api.vimeo.com/videos/${vimeoId}/pictures`, {
       method: 'POST',
@@ -46,17 +46,26 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, descripti
       body: JSON.stringify({ time: Math.floor(timestamp), active: false }),
     })
 
-    if (!createRes.ok) return null
+    if (!createRes.ok) {
+      console.log(`Vimeo pictures API error: ${createRes.status}`)
+      return null
+    }
 
     const pictureData = await createRes.json()
     const sizes = pictureData.sizes ?? []
     const largest = sizes.find((s: any) => s.width >= 1280) ?? sizes[sizes.length - 1]
     const imageUrl = largest?.link ?? null
 
-    if (!imageUrl) return null
+    if (!imageUrl) {
+      console.log('No image URL from Vimeo')
+      return null
+    }
 
     const imgRes = await fetch(imageUrl)
-    if (!imgRes.ok) return null
+    if (!imgRes.ok) {
+      console.log(`Failed to fetch image: ${imgRes.status}`)
+      return null
+    }
 
     const buffer = await imgRes.arrayBuffer()
     const fileName = `vimeo-${vimeoId}-${Math.floor(timestamp)}-${Math.random().toString(36).slice(2)}.jpg`
@@ -65,11 +74,16 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, descripti
       .from('article-images')
       .upload(fileName, buffer, { contentType: 'image/jpeg', upsert: true })
 
-    if (error) return null
+    if (error) {
+      console.log(`Supabase upload error: ${error.message}`)
+      return null
+    }
 
     const { data } = supabaseAdmin.storage.from('article-images').getPublicUrl(fileName)
+    console.log(`Screenshot success: ${data.publicUrl}`)
     return data.publicUrl
-  } catch {
+  } catch (e: any) {
+    console.log(`takeVimeoScreenshot error: ${e.message}`)
     return null
   }
 }
@@ -94,9 +108,11 @@ export async function POST(req: NextRequest) {
 
     const vimeoIdMatch = video.vimeo_url?.match(/vimeo\.com\/(\d+)/)
     const vimeoId = vimeoIdMatch?.[1] ?? ''
+    console.log(`Processing video: vimeoId=${vimeoId}, url=${video.vimeo_url}`)
 
     let transcript = video.transcript ?? ''
     if (!transcript && vimeoId) {
+      console.log('Fetching transcript from Vimeo...')
       const res = await fetch(`https://api.vimeo.com/videos/${vimeoId}/texttracks`, {
         headers: {
           Authorization: `Bearer ${process.env.VIMEO_TOKEN}`,
@@ -111,6 +127,7 @@ export async function POST(req: NextRequest) {
           if (trackRes.ok) {
             transcript = await trackRes.text()
             await supabaseAdmin.from('vimeo_videos').update({ transcript }).eq('id', video_id)
+            console.log('Transcript fetched and saved')
           }
         }
       }
@@ -118,11 +135,13 @@ export async function POST(req: NextRequest) {
 
     const transcriptEntries = transcript ? parseTranscript(transcript) : []
     const transcriptText = transcriptEntries.map(e => `[${Math.floor(e.time)}s] ${e.text}`).join('\n')
+    console.log(`Transcript entries: ${transcriptEntries.length}`)
 
     const created = []
 
     for (const question of questions) {
       const otherQuestions = questions.filter((q: string) => q !== question)
+      console.log(`Processing question: ${question}`)
 
       const timestampRes = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -152,25 +171,42 @@ Responde en JSON:
 }
 
 Máximo 5 pasos. Solo incluye pasos donde hay algo visual importante que mostrar.
+Los timestamps deben ser números enteros positivos mayores a 0.
 Responde ÚNICAMENTE con el JSON, sin explicaciones.`,
           }],
         }),
       })
 
       const timestampData = await timestampRes.json()
+      const rawTimestampText = timestampData.content?.[0]?.text ?? '{}'
+      console.log(`Claude timestamp response: ${rawTimestampText}`)
+
       let steps: { description: string; timestamp: number }[] = []
       try {
-        const parsed = JSON.parse(timestampData.content?.[0]?.text ?? '{}')
+        const parsed = JSON.parse(rawTimestampText)
         steps = parsed.steps ?? []
-      } catch {}
+      } catch (e) {
+        console.log(`Failed to parse steps JSON: ${e}`)
+      }
+
+      console.log(`Steps identified: ${JSON.stringify(steps)}`)
 
       const screenshots: { description: string; url: string; timestamp: number }[] = []
+
       for (const step of steps.slice(0, 5)) {
-        const screenshotUrl = await takeVimeoScreenshot(vimeoId, step.timestamp, step.description)
+        console.log(`Taking screenshot for: ${step.description} at ${step.timestamp}s`)
+        if (!step.timestamp || step.timestamp <= 0) {
+          console.log('Skipping invalid timestamp')
+          continue
+        }
+        const screenshotUrl = await takeVimeoScreenshot(vimeoId, step.timestamp)
         if (screenshotUrl) {
           screenshots.push({ description: step.description, url: screenshotUrl, timestamp: step.timestamp })
+          console.log(`Screenshot added: ${screenshotUrl}`)
         }
       }
+
+      console.log(`Total screenshots for this article: ${screenshots.length}`)
 
       const screenshotsText = screenshots.length > 0
         ? `CAPTURAS DE PANTALLA DEL VIDEO (incluye cada imagen INMEDIATAMENTE después del paso que describe):
@@ -240,13 +276,17 @@ INSTRUCCIONES:
         .select()
         .single()
 
-      if (error || !article) continue
+      if (error || !article) {
+        console.log(`Article insert error: ${error?.message}`)
+        continue
+      }
 
       await supabaseAdmin
         .from('article_vimeo_videos')
         .insert({ article_id: article.id, vimeo_video_id: video_id })
 
       created.push({ id: article.id, title: question, screenshots: screenshots.length })
+      console.log(`Article created: ${article.id} with ${screenshots.length} screenshots`)
     }
 
     await supabaseAdmin
@@ -256,6 +296,7 @@ INSTRUCCIONES:
 
     return NextResponse.json({ ok: true, created })
   } catch (e: any) {
+    console.log(`Main error: ${e.message}`)
     return NextResponse.json({ error: e.message }, { status: 500 })
   }
 }
