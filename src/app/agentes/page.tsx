@@ -61,6 +61,14 @@ export default function AgentesPage() {
     return matchSearch && matchStatus && matchCat
   })
 
+  const stats = [
+    { label: 'Total artículos', value: articles.length, filter: 'all' },
+    { label: 'Publicados', value: articles.filter(a => a.status === 'published').length, filter: 'published' },
+    { label: 'Borradores', value: articles.filter(a => a.status === 'draft').length, filter: 'draft' },
+    { label: 'Pendientes', value: articles.filter(a => a.status === 'pending_review').length, filter: 'pending_review' },
+    { label: 'Sin URL', value: articles.filter(a => !a.source_urls || a.source_urls.length === 0).length, filter: 'no_url' },
+  ]
+
   if (loading) return <div className="agent-loading">Cargando...</div>
 
   return (
@@ -69,11 +77,24 @@ export default function AgentesPage() {
 
       <div className="agent-body">
         <div className="agent-stats">
-          <div className="agent-stat"><div className="agent-stat-n">{articles.length}</div><div className="agent-stat-l">Total artículos</div></div>
-          <div className="agent-stat"><div className="agent-stat-n">{articles.filter(a => a.status === 'published').length}</div><div className="agent-stat-l">Publicados</div></div>
-          <div className="agent-stat"><div className="agent-stat-n">{articles.filter(a => a.status === 'draft').length}</div><div className="agent-stat-l">Borradores</div></div>
-          <div className="agent-stat"><div className="agent-stat-n">{articles.filter(a => a.status === 'pending_review').length}</div><div className="agent-stat-l">Pendientes</div></div>
-          <div className="agent-stat"><div className="agent-stat-n">{articles.filter(a => !a.source_urls || a.source_urls.length === 0).length}</div><div className="agent-stat-l">Sin URL</div></div>
+          {stats.map(({ label, value, filter }) => (
+            <button
+              key={filter}
+              className="agent-stat"
+              onClick={() => setFilterStatus(filter)}
+              style={{
+                cursor: 'pointer',
+                border: filterStatus === filter ? '2px solid var(--purple)' : '0.5px solid var(--border)',
+                background: filterStatus === filter ? 'var(--lp)' : '#fff',
+                borderRadius: 'var(--radius)',
+                transition: 'all 0.15s',
+                textAlign: 'center',
+              }}
+            >
+              <div className="agent-stat-n" style={{ color: filterStatus === filter ? 'var(--purple)' : 'var(--purple)' }}>{value}</div>
+              <div className="agent-stat-l">{label}</div>
+            </button>
+          ))}
         </div>
 
         <div className="agent-filters">
