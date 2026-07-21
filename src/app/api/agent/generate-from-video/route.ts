@@ -99,23 +99,29 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
             'x-api-key': process.env.ANTHROPIC_API_KEY!,
             'anthropic-version': '2023-06-01',
           },
-          body: JSON.stringify({
-            model: 'claude-sonnet-4-6',
-            max_tokens: 200,
-            messages: [{
-              role: 'user',
-              content: [
-                {
-                  type: 'image',
-                  source: {
-                    type: 'base64',
-                    media_type: 'image/jpeg',
-                    data: base64Image,
-                  },
-                },
-                {
-                  type: 'text',
-                  text: `En esta imagen de una interfaz web, busca el texto o elemento: "${targetText}"
+const visionPrompt = 'En esta imagen de una interfaz web, busca el texto o elemento: "' + targetText + '"\n\nSi lo encuentras, responde UNICAMENTE en JSON con las coordenadas aproximadas en pixeles:\n{"found": true, "x": numero, "y": numero, "width": numero, "height": numero}\n\nSi NO lo encuentras, responde:\n{"found": false}\n\nLa imagen tiene ' + width + 'x' + croppedHeight + ' pixeles. Responde UNICAMENTE con el JSON.'
+
+body: JSON.stringify({
+  model: 'claude-sonnet-4-6',
+  max_tokens: 200,
+  messages: [{
+    role: 'user',
+    content: [
+      {
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: 'image/jpeg',
+          data: base64Image,
+        },
+      },
+      {
+        type: 'text',
+        text: visionPrompt,
+      },
+    ],
+  }],
+}),
 
 Si lo encuentras, responde ÚNICAMENTE en JSON con las coordenadas aproximadas en píxeles:
 {"found": true, "x": numero, "y": numero, "width": numero, "height": numero}
