@@ -82,7 +82,7 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number): Promise<
     const metadata = await image.metadata()
     const width = metadata.width ?? 1280
     const height = metadata.height ?? 720
-    const cropTop = Math.floor(height * 0.08)
+    const cropTop = Math.floor(height * 0.12)
 
     const processedBuffer = await image
       .extract({
