@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import sharp from 'sharp'
+import { createWorker } from 'tesseract.js'
 
 export const maxDuration = 300
 
@@ -43,7 +44,7 @@ function parseTranscript(vtt: string): { time: number; text: string }[] {
   return entries
 }
 
-async function takeVimeoScreenshot(vimeoId: string, timestamp: number): Promise<string | null> {
+async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetText?: string): Promise<string | null> {
   try {
     const createRes = await fetch(`https://api.vimeo.com/videos/${vimeoId}/pictures`, {
       method: 'POST',
@@ -64,7 +65,6 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number): Promise<
     const sizes = pictureData.sizes ?? []
     const largest = sizes.find((s: any) => s.width >= 1280) ?? sizes[sizes.length - 1]
     const imageUrl = largest?.link ?? null
-
     if (!imageUrl) {
       console.log('No image URL from Vimeo')
       return null
@@ -76,29 +76,69 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number): Promise<
       return null
     }
 
-    const rawBuffer = await imgRes.arrayBuffer()
+    const rawBuffer = Buffer.from(await imgRes.arrayBuffer())
 
-    const image = sharp(Buffer.from(rawBuffer))
+    const image = sharp(rawBuffer)
     const metadata = await image.metadata()
     const width = metadata.width ?? 1280
     const height = metadata.height ?? 720
-    const cropTop = Math.floor(height * 0.13)
+    const cropTop = Math.floor(height * 0.12)
 
-    const processedBuffer = await image
-      .extract({
-        left: 0,
-        top: cropTop,
-        width: width,
-        height: height - cropTop,
-      })
+    let croppedBuffer = await image
+      .extract({ left: 0, top: cropTop, width, height: height - cropTop })
       .jpeg({ quality: 90 })
       .toBuffer()
+
+    if (targetText && targetText.trim()) {
+      try {
+        const worker = await createWorker('spa')
+        const { data } = await worker.recognize(croppedBuffer)
+        await worker.terminate()
+
+        const searchWords = targetText.toLowerCase().split(' ').filter(w => w.length > 3)
+        const matchedWords = data.words.filter((w: any) =>
+          searchWords.some(sw => w.text.toLowerCase().includes(sw))
+        )
+
+        if (matchedWords.length > 0) {
+          const xs = matchedWords.map((w: any) => w.bbox.x0)
+          const ys = matchedWords.map((w: any) => w.bbox.y0)
+          const xe = matchedWords.map((w: any) => w.bbox.x1)
+          const ye = matchedWords.map((w: any) => w.bbox.y1)
+
+          const x = Math.max(0, Math.min(...xs) - 8)
+          const y = Math.max(0, Math.min(...ys) - 8)
+          const w2 = Math.min(width, Math.max(...xe) + 8) - x
+          const h2 = Math.min(height - cropTop, Math.max(...ye) + 8) - y
+
+          const overlay = Buffer.from(`
+            <svg width="${width}" height="${height - cropTop}">
+              <rect x="${x}" y="${y}" width="${w2}" height="${h2}"
+                fill="none" stroke="#704EFD" stroke-width="3" rx="4"
+                filter="drop-shadow(0 0 4px rgba(112,78,253,0.5))"
+              />
+            </svg>
+          `)
+
+          croppedBuffer = await sharp(croppedBuffer)
+            .composite([{ input: overlay, blend: 'over' }])
+            .jpeg({ quality: 90 })
+            .toBuffer()
+
+          console.log(`Highlighted text: "${targetText}"`)
+        } else {
+          console.log(`Text not found in image: "${targetText}"`)
+        }
+      } catch (ocrError: any) {
+        console.log(`OCR error: ${ocrError.message}`)
+      }
+    }
 
     const fileName = `vimeo-${vimeoId}-${Math.floor(timestamp)}-${Math.random().toString(36).slice(2)}.jpg`
 
     const { error } = await supabaseAdmin.storage
       .from('article-images')
-      .upload(fileName, processedBuffer, { contentType: 'image/jpeg', upsert: true })
+      .upload(fileName, croppedBuffer, { contentType: 'image/jpeg', upsert: true })
 
     if (error) {
       console.log(`Supabase upload error: ${error.message}`)
@@ -134,11 +174,10 @@ export async function POST(req: NextRequest) {
 
     const vimeoIdMatch = video.vimeo_url?.match(/vimeo\.com\/(\d+)/)
     const vimeoId = vimeoIdMatch?.[1] ?? ''
-    console.log(`Processing video: vimeoId=${vimeoId}, url=${video.vimeo_url}`)
+    console.log(`Processing video: vimeoId=${vimeoId}`)
 
     let transcript = video.transcript ?? ''
     if (!transcript && vimeoId) {
-      console.log('Fetching transcript from Vimeo...')
       const res = await fetch(`https://api.vimeo.com/videos/${vimeoId}/texttracks`, {
         headers: {
           Authorization: `Bearer ${process.env.VIMEO_TOKEN}`,
@@ -153,7 +192,6 @@ export async function POST(req: NextRequest) {
           if (trackRes.ok) {
             transcript = await trackRes.text()
             await supabaseAdmin.from('vimeo_videos').update({ transcript }).eq('id', video_id)
-            console.log('Transcript fetched and saved')
           }
         }
       }
@@ -191,13 +229,15 @@ Responde en JSON:
   "steps": [
     {
       "description": "descripción breve del paso",
-      "timestamp": segundos_exactos
+      "timestamp": segundos_exactos,
+      "highlightText": "texto exacto que aparece en pantalla y debe resaltarse, o null"
     }
   ]
 }
 
-Máximo 5 pasos. Solo incluye pasos donde hay algo visual importante que mostrar.
+Máximo 5 pasos. Solo incluye pasos donde hay algo visual importante.
 Los timestamps deben ser números enteros positivos mayores a 0.
+highlightText debe ser el texto exacto que aparece en la interfaz (botón, menú, etc).
 Responde ÚNICAMENTE con el JSON puro, sin bloques de código, sin markdown, sin \`\`\`.`,
           }],
         }),
@@ -207,7 +247,7 @@ Responde ÚNICAMENTE con el JSON puro, sin bloques de código, sin markdown, sin
       const rawTimestampText = timestampData.content?.[0]?.text ?? '{}'
       console.log(`Claude timestamp response: ${rawTimestampText}`)
 
-      let steps: { description: string; timestamp: number }[] = []
+      let steps: { description: string; timestamp: number; highlightText?: string }[] = []
       try {
         const cleanedJson = rawTimestampText
           .replace(/^```json\s*/i, '')
@@ -225,19 +265,16 @@ Responde ÚNICAMENTE con el JSON puro, sin bloques de código, sin markdown, sin
       const screenshots: { description: string; url: string; timestamp: number }[] = []
 
       for (const step of steps.slice(0, 5)) {
-        console.log(`Taking screenshot for: ${step.description} at ${step.timestamp}s`)
-        if (!step.timestamp || step.timestamp <= 0) {
-          console.log('Skipping invalid timestamp')
-          continue
-        }
-        const screenshotUrl = await takeVimeoScreenshot(vimeoId, step.timestamp)
+        if (!step.timestamp || step.timestamp <= 0) continue
+        console.log(`Taking screenshot for: ${step.description} at ${step.timestamp}s highlight: ${step.highlightText}`)
+        const screenshotUrl = await takeVimeoScreenshot(vimeoId, step.timestamp, step.highlightText)
         if (screenshotUrl) {
           screenshots.push({ description: step.description, url: screenshotUrl, timestamp: step.timestamp })
           console.log(`Screenshot added: ${screenshotUrl}`)
         }
       }
 
-      console.log(`Total screenshots for this article: ${screenshots.length}`)
+      console.log(`Total screenshots: ${screenshots.length}`)
 
       const screenshotsText = screenshots.length > 0
         ? `CAPTURAS DE PANTALLA DEL VIDEO (incluye cada imagen INMEDIATAMENTE después del paso que describe):
