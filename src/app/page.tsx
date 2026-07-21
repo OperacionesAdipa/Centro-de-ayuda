@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getCategories, getSections, getArticles, slugify, extractTagsFromBody, CATEGORY_ICONS } from '@/lib/supabaseQueries'
+import { getCategories, getSections, getArticles, slugify, CATEGORY_ICONS } from '@/lib/supabaseQueries'
 import { FaqSection } from '@/components/FaqSection'
 import { CountryHero } from '@/components/CountryHero'
 import { ContactSection } from '@/components/ContactSection'
@@ -8,7 +8,7 @@ import { VideoTutorials } from '@/components/VideoTutorials'
 import { RecentlyViewed } from '@/components/RecentlyViewed'
 import { HelpSection } from '@/components/HelpSection'
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
   const [categories, allSections, allArticles] = await Promise.all([
@@ -20,9 +20,9 @@ export default async function HomePage() {
   const topViewed = [...allArticles]
     .sort((a, b) => (b.view_count ?? 0) - (a.view_count ?? 0))
     .slice(0, 6)
-
   const featured = allArticles.filter((a) => a.promoted)
   const display = featured.length > 0 ? featured : topViewed
+
   const sectionMap = Object.fromEntries(allSections.map((s: any) => [s.id, s]))
 
   const catArticleMap: Record<number, any[]> = {}
@@ -38,29 +38,22 @@ export default async function HomePage() {
         totalCategories={categories.length}
         totalArticles={allArticles.length}
       />
-
       <div className="main">
         <RecentlyViewed />
-
         <div className="section-header">
           <h2 className="section-title">
             <span className="section-title-icon">⊞</span>
             Categorías
           </h2>
         </div>
-
         <CatsGrid
           categories={categories}
           allSections={allSections}
           catArticleMap={catArticleMap}
         />
-
         <div className="section-divider" />
-
         <VideoTutorials articles={allArticles} />
-
         <div className="section-divider" />
-
         <div className="section-header">
           <h2 className="section-title">
             <span className="section-title-icon">🔥</span>
@@ -90,9 +83,7 @@ export default async function HomePage() {
             )
           })}
         </div>
-
         <div className="section-divider" />
-
         <div className="section-header">
           <h2 className="section-title">
             <span className="section-title-icon">❓</span>
@@ -100,11 +91,8 @@ export default async function HomePage() {
           </h2>
         </div>
         <FaqSection articles={allArticles} />
-
         <div className="section-divider" />
-
         <HelpSection />
-
         <ContactSection />
       </div>
     </>
