@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import sharp from 'sharp'
-import { createWorker } from 'tesseract.js'
 
 export const maxDuration = 300
 
@@ -77,46 +76,76 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
     }
 
     const rawBuffer = Buffer.from(await imgRes.arrayBuffer())
-
     const image = sharp(rawBuffer)
     const metadata = await image.metadata()
     const width = metadata.width ?? 1280
     const height = metadata.height ?? 720
     const cropTop = Math.floor(height * 0.12)
+    const croppedHeight = height - cropTop
 
     let croppedBuffer = await image
-      .extract({ left: 0, top: cropTop, width, height: height - cropTop })
+      .extract({ left: 0, top: cropTop, width, height: croppedHeight })
       .jpeg({ quality: 90 })
       .toBuffer()
 
     if (targetText && targetText.trim()) {
       try {
-        const worker = await createWorker('spa')
-        const { data } = await worker.recognize(croppedBuffer)
-        await worker.terminate()
+        const base64Image = croppedBuffer.toString('base64')
 
-        const searchWords = targetText.toLowerCase().split(' ').filter(w => w.length > 3)
-        const matchedWords = data.words.filter((w: any) =>
-          searchWords.some(sw => w.text.toLowerCase().includes(sw))
-        )
+        const visionRes = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.ANTHROPIC_API_KEY!,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 200,
+            messages: [{
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  source: {
+                    type: 'base64',
+                    media_type: 'image/jpeg',
+                    data: base64Image,
+                  },
+                },
+                {
+                  type: 'text',
+                  text: `En esta imagen de una interfaz web, busca el texto o elemento: "${targetText}"
 
-        if (matchedWords.length > 0) {
-          const xs = matchedWords.map((w: any) => w.bbox.x0)
-          const ys = matchedWords.map((w: any) => w.bbox.y0)
-          const xe = matchedWords.map((w: any) => w.bbox.x1)
-          const ye = matchedWords.map((w: any) => w.bbox.y1)
+Si lo encuentras, responde ÚNICAMENTE en JSON con las coordenadas aproximadas en píxeles:
+{"found": true, "x": numero, "y": numero, "width": numero, "height": numero}
 
-          const x = Math.max(0, Math.min(...xs) - 8)
-          const y = Math.max(0, Math.min(...ys) - 8)
-          const w2 = Math.min(width, Math.max(...xe) + 8) - x
-          const h2 = Math.min(height - cropTop, Math.max(...ye) + 8) - y
+Si NO lo encuentras, responde:
+{"found": false}
+
+La imagen tiene ${width}x${croppedHeight} píxeles. Responde ÚNICAMENTE con el JSON.`,
+                },
+              ],
+            }),
+          }),
+        })
+
+        const visionData = await visionRes.json()
+        const visionText = visionData.content?.[0]?.text?.trim() ?? '{}'
+        const cleaned = visionText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim()
+        const coords = JSON.parse(cleaned)
+
+        if (coords.found && coords.x >= 0 && coords.y >= 0) {
+          const padding = 8
+          const rx = Math.max(0, coords.x - padding)
+          const ry = Math.max(0, coords.y - padding)
+          const rw = Math.min(width - rx, coords.width + padding * 2)
+          const rh = Math.min(croppedHeight - ry, coords.height + padding * 2)
 
           const overlay = Buffer.from(`
-            <svg width="${width}" height="${height - cropTop}">
-              <rect x="${x}" y="${y}" width="${w2}" height="${h2}"
-                fill="none" stroke="#704EFD" stroke-width="3" rx="4"
-                filter="drop-shadow(0 0 4px rgba(112,78,253,0.5))"
-              />
+            <svg width="${width}" height="${croppedHeight}">
+              <rect x="${rx}" y="${ry}" width="${rw}" height="${rh}"
+                fill="rgba(112,78,253,0.1)" stroke="#704EFD" stroke-width="3" rx="4"/>
             </svg>
           `)
 
@@ -125,12 +154,10 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
             .jpeg({ quality: 90 })
             .toBuffer()
 
-          console.log(`Highlighted text: "${targetText}"`)
-        } else {
-          console.log(`Text not found in image: "${targetText}"`)
+          console.log(`Highlighted: "${targetText}" at x=${coords.x} y=${coords.y}`)
         }
-      } catch (ocrError: any) {
-        console.log(`OCR error: ${ocrError.message}`)
+      } catch (e: any) {
+        console.log(`Vision error: ${e.message}`)
       }
     }
 
