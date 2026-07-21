@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { RichEditor } from '@/components/RichEditor'
 import { AgentNav } from '@/components/AgentNav'
+import { CategorySectionSelector } from '@/components/CategorySectionSelector'
 
 interface Article {
   id: number
@@ -34,7 +35,6 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
   const [categories, setCategories] = useState<Category[]>([])
   const [sections, setSections] = useState<Section[]>([])
   const [versions, setVersions] = useState<Version[]>([])
-  const [vimeoVideos, setVimeoVideos] = useState<VimeoVideo[]>([])
   const [linkedVideos, setLinkedVideos] = useState<VimeoVideo[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -85,7 +85,6 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
     setVersions(verData.versions ?? [])
 
     const allVideos = vimeoData.videos ?? []
-    setVimeoVideos(allVideos)
     const linked = allVideos.filter((v: any) =>
       v.articles?.some((a: any) => a.id === parseInt(params.id))
     )
@@ -122,9 +121,7 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
     if (!confirm('¿Eliminar este artículo? Esta acción no se puede deshacer.')) return
     setDeleting(true)
     const res = await fetch(`/api/agent/articles/${params.id}`, { method: 'DELETE' })
-    if (res.ok) {
-      router.push('/agentes')
-    }
+    if (res.ok) router.push('/agentes')
     setDeleting(false)
   }
 
@@ -190,8 +187,6 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
     setArticle({ ...article, source_urls: article.source_urls.filter(u => u !== url) })
   }
 
-  const filteredSections = sections.filter(s => s.category_id === article?.category_id)
-
   if (loading) return <div className="agent-loading">Cargando...</div>
   if (!article) return <div className="agent-loading">Artículo no encontrado</div>
 
@@ -199,7 +194,7 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
     return (
       <div>
         <div style={{ background: '#704EFD', color: '#fff', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
-          <span>&#128065; Vista previa — así lo ve el estudiante</span>
+          <span>Vista previa — así lo ve el estudiante</span>
           <div style={{ display: 'flex', gap: 10 }}>
             <button onClick={() => setShowPreview(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', padding: '6px 14px', borderRadius: 99, cursor: 'pointer', fontSize: 13 }}>
               Volver al editor
@@ -271,10 +266,10 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="agent-nav-btn" onClick={() => setShowVersions(true)}>
-            &#128337; Versiones {versions.length > 0 && `(${versions.length})`}
+            Versiones {versions.length > 0 && `(${versions.length})`}
           </button>
           <button className="agent-nav-btn" onClick={() => setShowPreview(true)}>
-            &#128065; Vista estudiante
+            Vista estudiante
           </button>
           <button className="agent-nav-btn" onClick={() => save('draft')} disabled={saving}>
             Guardar borrador
@@ -305,18 +300,18 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
         <div className="agent-editor-side">
           <div className="agent-side-card">
             <div className="agent-side-title">Categoría y sección</div>
-            <select className="agent-select" value={article.category_id} onChange={(e) => {
-              const cat = categories.find(c => c.id === Number(e.target.value))
-              setArticle({ ...article, category_id: Number(e.target.value), category_name: cat?.name ?? '' })
-            }}>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-            <select className="agent-select" value={article.section_id} onChange={(e) => {
-              const sec = sections.find(s => s.id === Number(e.target.value))
-              setArticle({ ...article, section_id: Number(e.target.value), section_name: sec?.name ?? '' })
-            }}>
-              {filteredSections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
+            <CategorySectionSelector
+              categories={categories}
+              sections={sections}
+              categoryId={article.category_id}
+              categoryName={article.category_name}
+              sectionId={article.section_id}
+              sectionName={article.section_name}
+              onCategoryChange={(id, name) => setArticle({ ...article, category_id: id, category_name: name })}
+              onSectionChange={(id, name) => setArticle({ ...article, section_id: id, section_name: name })}
+              onCategoryCreated={(cat) => setCategories(prev => [...prev, cat])}
+              onSectionCreated={(sec) => setSections(prev => [...prev, sec])}
+            />
           </div>
 
           <div className="agent-side-card">
