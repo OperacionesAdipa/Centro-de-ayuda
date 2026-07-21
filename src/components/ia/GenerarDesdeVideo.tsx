@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { CategorySectionSelector } from '@/components/CategorySectionSelector'
 
 interface Category {
   id: number
@@ -169,8 +170,6 @@ export function GenerarDesdeVideo() {
     )
   }
 
-  const filteredSections = sections.filter(s => s.category_id === categoryId)
-
   if (loading) return <div className="agent-loading">Cargando...</div>
 
   return (
@@ -220,7 +219,7 @@ export function GenerarDesdeVideo() {
                 {suggesting ? 'Sugiriendo...' : 'Sugerir desde transcripción'}
               </button>
             </div>
-            <p className="agent-side-desc">Escribe una pregunta por línea o usa "Sugerir desde transcripción" para generarlas automáticamente.</p>
+            <p className="agent-side-desc">Escribe una pregunta por línea o usa "Sugerir desde transcripción".</p>
             <textarea
               className="agent-textarea"
               placeholder={`¿Cómo inicio sesión?\n¿Cómo actualizo mis datos?\n¿Cómo cambio mi contraseña?`}
@@ -238,23 +237,18 @@ export function GenerarDesdeVideo() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
             <div className="agent-side-card">
               <div className="agent-side-title">Categoría y sección</div>
-              <select className="agent-select" value={categoryId} onChange={(e) => {
-                const cat = categories.find(c => c.id === Number(e.target.value))
-                setCategoryId(Number(e.target.value))
-                setCategoryName(cat?.name ?? '')
-                setSectionId(0)
-                setSectionName('')
-              }}>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-              <select className="agent-select" value={sectionId} onChange={(e) => {
-                const sec = sections.find(s => s.id === Number(e.target.value))
-                setSectionId(Number(e.target.value))
-                setSectionName(sec?.name ?? '')
-              }}>
-                <option value={0}>Seleccionar sección</option>
-                {filteredSections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
+              <CategorySectionSelector
+                categories={categories}
+                sections={sections}
+                categoryId={categoryId}
+                categoryName={categoryName}
+                sectionId={sectionId}
+                sectionName={sectionName}
+                onCategoryChange={(id, name) => { setCategoryId(id); setCategoryName(name); setSectionId(0); setSectionName('') }}
+                onSectionChange={(id, name) => { setSectionId(id); setSectionName(name) }}
+                onCategoryCreated={(cat) => setCategories(prev => [...prev, cat])}
+                onSectionCreated={(sec) => setSections(prev => [...prev, sec])}
+              />
             </div>
 
             <div className="agent-side-card">
@@ -284,7 +278,7 @@ export function GenerarDesdeVideo() {
 
           {generating && (
             <div style={{ marginBottom: 12, padding: '14px 18px', borderRadius: 8, fontSize: 13, background: '#e0f2fe', color: '#0284c7' }}>
-              Generando artículos con capturas de pantalla del video... Esto puede tomar 2-5 minutos dependiendo del número de preguntas.
+              Generando artículos con capturas de pantalla del video... Esto puede tomar 2-5 minutos.
             </div>
           )}
 
