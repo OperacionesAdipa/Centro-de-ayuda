@@ -24,7 +24,6 @@ export function ActualizarArticulos() {
   const [urls, setUrls] = useState<SourceUrl[]>([])
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchUrl, setSearchUrl] = useState('')
   const [newUrl, setNewUrl] = useState('')
   const [newName, setNewName] = useState('')
   const [newDesc, setNewDesc] = useState('')
@@ -83,10 +82,10 @@ export function ActualizarArticulos() {
     })
     const data = await res.json()
     if (res.ok) {
-      setRegenerateResult(prev => ({ ...prev, [urlId]: `Se actualizaron ${data.updated.length} artículo(s) y quedaron pendientes de revisión` }))
+      setRegenerateResult(prev => ({ ...prev, [urlId]: `✅ ${data.updated.length} artículo(s) actualizados y pendientes de revisión` }))
       await loadData()
     } else {
-      setRegenerateResult(prev => ({ ...prev, [urlId]: `Error: ${data.error}` }))
+      setRegenerateResult(prev => ({ ...prev, [urlId]: `❌ Error: ${data.error}` }))
     }
     setRegenerating(null)
   }
@@ -114,11 +113,6 @@ export function ActualizarArticulos() {
     await loadData()
   }
 
-  const filteredUrls = urls.filter(u =>
-    u.name?.toLowerCase().includes(searchUrl.toLowerCase()) ||
-    u.url?.toLowerCase().includes(searchUrl.toLowerCase())
-  )
-
   if (loading) return <div className="agent-loading">Cargando...</div>
 
   return (
@@ -135,18 +129,9 @@ export function ActualizarArticulos() {
         </div>
       </div>
 
-      <input
-        className="agent-search"
-        type="text"
-        placeholder="Buscar por nombre o URL..."
-        value={searchUrl}
-        onChange={(e) => setSearchUrl(e.target.value)}
-        style={{ marginBottom: 16, width: '100%' }}
-      />
-
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {filteredUrls.length === 0 && <div className="agent-empty">No se encontraron URLs.</div>}
-        {filteredUrls.map((u) => (
+        {urls.length === 0 && <div className="agent-empty">No hay URLs registradas aún.</div>}
+        {urls.map((u) => (
           <div key={u.id} className="agent-side-card" style={{ gap: 0, padding: 0, overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', gap: 12, flexWrap: 'wrap' }}>
               <div style={{ flex: 1 }}>
@@ -165,7 +150,7 @@ export function ActualizarArticulos() {
                   disabled={regenerating === u.id || u.articles.length === 0}
                   style={{ fontSize: 12, padding: '5px 12px' }}
                 >
-                  {regenerating === u.id ? 'Actualizando...' : 'Actualizar artículos'}
+                  {regenerating === u.id ? 'Actualizando...' : '🔄 Actualizar artículos'}
                 </button>
                 <button className="agent-action-btn" onClick={() => setExpandedUrl(expandedUrl === u.id ? null : u.id)}>
                   {expandedUrl === u.id ? 'Ocultar' : 'Ver artículos'}
@@ -175,7 +160,7 @@ export function ActualizarArticulos() {
             </div>
 
             {regenerateResult[u.id] && (
-              <div style={{ padding: '8px 18px', fontSize: 13, background: regenerateResult[u.id].startsWith('Error') ? '#fcebeb' : '#eaf3de', color: regenerateResult[u.id].startsWith('Error') ? '#a32d2d' : '#3b6d11' }}>
+              <div style={{ padding: '8px 18px', fontSize: 13, background: regenerateResult[u.id].startsWith('✅') ? '#eaf3de' : '#fcebeb', color: regenerateResult[u.id].startsWith('✅') ? '#3b6d11' : '#a32d2d' }}>
                 {regenerateResult[u.id]}
               </div>
             )}
