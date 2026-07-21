@@ -123,7 +123,7 @@ Si lo encuentras, responde ÚNICAMENTE en JSON con las coordenadas aproximadas e
 Si NO lo encuentras, responde:
 {"found": false}
 
-La imagen tiene ${width}x${croppedHeight} píxeles. Responde ÚNICAMENTE con el JSON.`,
+La imagen tiene ${width}x${croppedHeight} pixeles. Responde UNICAMENTE con el JSON.`,
                 },
               ],
             }),
