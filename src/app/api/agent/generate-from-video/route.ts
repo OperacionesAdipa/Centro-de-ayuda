@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import sharp from 'sharp'
 
 export const maxDuration = 300
 
@@ -75,12 +76,29 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number): Promise<
       return null
     }
 
-    const buffer = await imgRes.arrayBuffer()
+    const rawBuffer = await imgRes.arrayBuffer()
+
+    const image = sharp(Buffer.from(rawBuffer))
+    const metadata = await image.metadata()
+    const width = metadata.width ?? 1280
+    const height = metadata.height ?? 720
+    const cropTop = Math.floor(height * 0.08)
+
+    const processedBuffer = await image
+      .extract({
+        left: 0,
+        top: cropTop,
+        width: width,
+        height: height - cropTop,
+      })
+      .jpeg({ quality: 90 })
+      .toBuffer()
+
     const fileName = `vimeo-${vimeoId}-${Math.floor(timestamp)}-${Math.random().toString(36).slice(2)}.jpg`
 
     const { error } = await supabaseAdmin.storage
       .from('article-images')
-      .upload(fileName, buffer, { contentType: 'image/jpeg', upsert: true })
+      .upload(fileName, processedBuffer, { contentType: 'image/jpeg', upsert: true })
 
     if (error) {
       console.log(`Supabase upload error: ${error.message}`)
