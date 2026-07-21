@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { ArticlePreviewPanel } from '@/components/ArticlePreviewPanel'
 
 interface SourceUrl {
   id: number
@@ -35,6 +36,7 @@ export function ActualizarArticulos() {
   const [linkingUrl, setLinkingUrl] = useState<number | null>(null)
   const [articleSearch, setArticleSearch] = useState('')
   const [selectedArticles, setSelectedArticles] = useState<number[]>([])
+  const [previewArticleId, setPreviewArticleId] = useState<number | null>(null)
 
   useEffect(() => { loadData() }, [])
 
@@ -194,6 +196,12 @@ export function ActualizarArticulos() {
                           <span className={`agent-status ${art.status}`}>
                             {art.status === 'published' ? 'Publicado' : art.status === 'draft' ? 'Borrador' : 'Pendiente'}
                           </span>
+                          <button
+                            onClick={() => setPreviewArticleId(art.id)}
+                            style={{ fontSize: 11, color: 'var(--purple)', background: 'none', border: 'none', cursor: 'pointer' }}
+                          >
+                            Ver
+                          </button>
                           <Link href={`/agentes/editar/${art.id}`} className="agent-action-btn" style={{ fontSize: 11 }}>Editar</Link>
                           <button className="agent-url-remove" onClick={() => unlinkArticle(u.id, art.id)}>✕</button>
                         </div>
@@ -227,6 +235,12 @@ export function ActualizarArticulos() {
                               <div style={{ fontSize: 13, color: 'var(--dark)' }}>{a.title}</div>
                               <div style={{ fontSize: 11, color: 'var(--muted)' }}>{a.category_name} · {a.section_name}</div>
                             </div>
+                            <button
+                              onClick={(e) => { e.preventDefault(); setPreviewArticleId(a.id) }}
+                              style={{ fontSize: 11, color: 'var(--purple)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
+                            >
+                              Ver
+                            </button>
                             <span className={`agent-status ${a.status}`} style={{ fontSize: 11 }}>
                               {a.status === 'published' ? 'Publicado' : a.status === 'draft' ? 'Borrador' : 'Pendiente'}
                             </span>
@@ -248,6 +262,8 @@ export function ActualizarArticulos() {
           </div>
         ))}
       </div>
+
+      <ArticlePreviewPanel articleId={previewArticleId} onClose={() => setPreviewArticleId(null)} />
     </div>
   )
 }
