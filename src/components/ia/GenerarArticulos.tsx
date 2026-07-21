@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { CategorySectionSelector } from '@/components/CategorySectionSelector'
 
 interface Category {
   id: number
@@ -68,13 +69,11 @@ export function GenerarArticulos() {
     if (!url.trim()) { setError('Ingresa una URL primero'); return }
     setSuggesting(true)
     setError('')
-
     const res = await fetch('/api/agent/suggest-questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: url.trim() }),
     })
-
     const data = await res.json()
     if (res.ok && data.questions) {
       setQuestions(data.questions.join('\n'))
@@ -132,17 +131,11 @@ export function GenerarArticulos() {
       body: JSON.stringify({ status: 'published' }),
     })
     if (res.ok) {
-      setCreatedArticles(prev => prev.map(a =>
-        a.id === id ? { ...a, published: true } : a
-      ))
-      if (previewArticle?.id === id) {
-        setPreviewArticle(prev => prev ? { ...prev, published: true } : null)
-      }
+      setCreatedArticles(prev => prev.map(a => a.id === id ? { ...a, published: true } : a))
+      if (previewArticle?.id === id) setPreviewArticle(prev => prev ? { ...prev, published: true } : null)
     }
     setPublishing(null)
   }
-
-  const filteredSections = sections.filter(s => s.category_id === categoryId)
 
   if (loading) return <div className="agent-loading">Cargando...</div>
 
@@ -192,31 +185,18 @@ export function GenerarArticulos() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
             <div className="agent-side-card">
               <div className="agent-side-title">Categoría y sección</div>
-              <select
-                className="agent-select"
-                value={categoryId}
-                onChange={(e) => {
-                  const cat = categories.find(c => c.id === Number(e.target.value))
-                  setCategoryId(Number(e.target.value))
-                  setCategoryName(cat?.name ?? '')
-                  setSectionId(0)
-                  setSectionName('')
-                }}
-              >
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-              <select
-                className="agent-select"
-                value={sectionId}
-                onChange={(e) => {
-                  const sec = sections.find(s => s.id === Number(e.target.value))
-                  setSectionId(Number(e.target.value))
-                  setSectionName(sec?.name ?? '')
-                }}
-              >
-                <option value={0}>Seleccionar sección</option>
-                {filteredSections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
+              <CategorySectionSelector
+                categories={categories}
+                sections={sections}
+                categoryId={categoryId}
+                categoryName={categoryName}
+                sectionId={sectionId}
+                sectionName={sectionName}
+                onCategoryChange={(id, name) => { setCategoryId(id); setCategoryName(name); setSectionId(0); setSectionName('') }}
+                onSectionChange={(id, name) => { setSectionId(id); setSectionName(name) }}
+                onCategoryCreated={(cat) => setCategories(prev => [...prev, cat])}
+                onSectionCreated={(sec) => setSections(prev => [...prev, sec])}
+              />
             </div>
 
             <div className="agent-side-card">
@@ -295,12 +275,7 @@ export function GenerarArticulos() {
                       >
                         {publishing === art.id ? 'Publicando...' : 'Publicar'}
                       </button>
-                      <Link
-                        href={`/agentes/editar/${art.id}`}
-                        className="agent-action-btn"
-                        style={{ fontSize: 11 }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <Link href={`/agentes/editar/${art.id}`} className="agent-action-btn" style={{ fontSize: 11 }} onClick={(e) => e.stopPropagation()}>
                         Editar
                       </Link>
                     </div>
@@ -309,7 +284,7 @@ export function GenerarArticulos() {
               ))}
             </div>
 
-            {previewArticle && (
+            {previewArticle ? (
               <div className="agent-side-card" style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                   <h3 style={{ fontSize: 16, fontWeight: 600 }}>{previewArticle.title}</h3>
@@ -321,9 +296,7 @@ export function GenerarArticulos() {
                 </div>
                 <div className="article-body" dangerouslySetInnerHTML={{ __html: previewArticle.body ?? '' }} />
               </div>
-            )}
-
-            {!previewArticle && (
+            ) : (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 14, border: '0.5px dashed var(--border)', borderRadius: 'var(--radius)', minHeight: 300 }}>
                 Haz clic en un artículo para previsualizarlo
               </div>
