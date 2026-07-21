@@ -25,7 +25,6 @@ export function ActualizarVideos() {
   const [videos, setVideos] = useState<VimeoVideo[]>([])
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchVideo, setSearchVideo] = useState('')
   const [newUrl, setNewUrl] = useState('')
   const [adding, setAdding] = useState(false)
   const [regenerating, setRegenerating] = useState<number | null>(null)
@@ -108,11 +107,6 @@ export function ActualizarVideos() {
     await loadData()
   }
 
-  const filteredVideos = videos.filter(v =>
-    v.title?.toLowerCase().includes(searchVideo.toLowerCase()) ||
-    v.vimeo_url?.toLowerCase().includes(searchVideo.toLowerCase())
-  )
-
   if (loading) return <div className="agent-loading">Cargando...</div>
 
   return (
@@ -126,18 +120,9 @@ export function ActualizarVideos() {
         </div>
       </div>
 
-      <input
-        className="agent-search"
-        type="text"
-        placeholder="Buscar por título o URL de video..."
-        value={searchVideo}
-        onChange={(e) => setSearchVideo(e.target.value)}
-        style={{ marginBottom: 16, width: '100%' }}
-      />
-
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {filteredVideos.length === 0 && <div className="agent-empty">No se encontraron videos.</div>}
-        {filteredVideos.map((v) => (
+        {videos.length === 0 && <div className="agent-empty">No hay videos registrados aún.</div>}
+        {videos.map((v) => (
           <div key={v.id} className="agent-side-card" style={{ gap: 0, padding: 0, overflow: 'hidden', borderTop: '3px solid #0ea5e9' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', gap: 12, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', gap: 14, alignItems: 'center', flex: 1 }}>
