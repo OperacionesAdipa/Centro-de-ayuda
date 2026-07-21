@@ -2,7 +2,7 @@ import { getArticles, getCategories, getSections } from '@/lib/supabaseQueries'
 import { ArticleSidebar } from '@/components/ArticleSidebar'
 import { VideoTutorialsGrid } from '@/components/VideoTutorialsGrid'
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 export default async function VideoTutorialesPage() {
   const [allArticles, allSections, categories] = await Promise.all([
@@ -10,7 +10,6 @@ export default async function VideoTutorialesPage() {
     getSections(),
     getCategories(),
   ])
-
   return (
     <div className="article-layout">
       <ArticleSidebar
