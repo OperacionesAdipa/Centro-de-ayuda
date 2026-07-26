@@ -37,6 +37,7 @@ export function ActualizarArticulos() {
   const [articleSearch, setArticleSearch] = useState('')
   const [selectedArticles, setSelectedArticles] = useState<number[]>([])
   const [previewArticleId, setPreviewArticleId] = useState<number | null>(null)
+  const [changingStatus, setChangingStatus] = useState<number | null>(null)
 
   useEffect(() => { loadData() }, [])
 
@@ -93,6 +94,17 @@ export function ActualizarArticulos() {
     setRegenerating(null)
   }
 
+  async function changeStatus(articleId: number, status: string) {
+    setChangingStatus(articleId)
+    await fetch(`/api/agent/articles/${articleId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    })
+    await loadData()
+    setChangingStatus(null)
+  }
+
   async function linkArticles(urlId: number) {
     for (const articleId of selectedArticles) {
       await fetch(`/api/agent/urls/${urlId}/articles`, {
@@ -125,8 +137,11 @@ export function ActualizarArticulos() {
 
   return (
     <div>
-      <div className="agent-side-card" style={{ marginBottom: 24 }}>
-        <div className="agent-side-title">Agregar nueva URL de referencia</div>
+      {/* Agregar nueva URL */}
+      <div style={{ background: 'linear-gradient(135deg, #f5f3ff, #fff)', border: '1.5px solid var(--purple)', borderRadius: 12, padding: '18px 20px', marginBottom: 20 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--purple)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+          🔗 Agregar nueva URL de referencia
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: 10 }}>
           <input className="agent-input" type="url" placeholder="https://adipa.cl/..." value={newUrl} onChange={(e) => setNewUrl(e.target.value)} />
           <input className="agent-input" type="text" placeholder="Nombre descriptivo" value={newName} onChange={(e) => setNewName(e.target.value)} />
@@ -137,15 +152,23 @@ export function ActualizarArticulos() {
         </div>
       </div>
 
-      <input
-        className="agent-search"
-        type="text"
-        placeholder="Buscar por nombre o URL..."
-        value={searchUrl}
-        onChange={(e) => setSearchUrl(e.target.value)}
-        style={{ marginBottom: 16, width: '100%' }}
-      />
+      {/* Buscador */}
+      <div style={{ background: '#fff', border: '0.5px solid var(--border)', borderRadius: 10, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ fontSize: 16, color: 'var(--muted)' }}>🔍</span>
+        <input
+          className="agent-search"
+          type="text"
+          placeholder="Buscar por nombre o URL..."
+          value={searchUrl}
+          onChange={(e) => setSearchUrl(e.target.value)}
+          style={{ flex: 1, border: 'none', padding: 0, outline: 'none' }}
+        />
+        {searchUrl && (
+          <button onClick={() => setSearchUrl('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 14 }}>✕</button>
+        )}
+      </div>
 
+      {/* Listado */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {filteredUrls.length === 0 && <div className="agent-empty">No se encontraron URLs.</div>}
         {filteredUrls.map((u) => (
@@ -190,12 +213,28 @@ export function ActualizarArticulos() {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
                     {u.articles.map((art) => (
-                      <div key={art.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', padding: '8px 12px', borderRadius: 8, border: '0.5px solid var(--border)' }}>
+                      <div key={art.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', padding: '10px 12px', borderRadius: 8, border: '0.5px solid var(--border)' }}>
                         <span style={{ fontSize: 13, flex: 1 }}>{art.title}</span>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                          <span className={`agent-status ${art.status}`}>
-                            {art.status === 'published' ? 'Publicado' : art.status === 'draft' ? 'Borrador' : 'Pendiente'}
-                          </span>
+                          <select
+                            value={art.status}
+                            onChange={(e) => changeStatus(art.id, e.target.value)}
+                            disabled={changingStatus === art.id}
+                            style={{
+                              fontSize: 11,
+                              padding: '3px 8px',
+                              borderRadius: 99,
+                              border: '0.5px solid var(--border)',
+                              background: art.status === 'published' ? '#eaf3de' : art.status === 'draft' ? '#f1efe8' : '#faeeda',
+                              color: art.status === 'published' ? '#3b6d11' : art.status === 'draft' ? '#5f5e5a' : '#854f0b',
+                              cursor: 'pointer',
+                              outline: 'none',
+                            }}
+                          >
+                            <option value="published">Publicado</option>
+                            <option value="draft">Borrador</option>
+                            <option value="pending_review">Pendiente</option>
+                          </select>
                           <button
                             onClick={() => setPreviewArticleId(art.id)}
                             style={{ fontSize: 11, color: 'var(--purple)', background: 'none', border: 'none', cursor: 'pointer' }}
