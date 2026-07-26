@@ -74,7 +74,7 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
         </div>
       </div>
 
-      <div style={{ height: 2, background: 'var(--border)', margin: '32px 0', borderRadius: 2 }} />      
+      <div style={{ height: 1, background: 'rgba(112,78,253,0.2)', margin: '32px 0' }} />  
       
       <div style={{ marginTop: 24 }}>
         <HelpSection />
