@@ -43,51 +43,6 @@ function parseTranscript(vtt: string): { time: number; text: string }[] {
   return entries
 }
 
-const COLS = 8
-const ROWS = 6
-
-function colLabel(c: number): string {
-  return String.fromCharCode(65 + c)
-}
-
-function buildGridSvg(w: number, h: number): string {
-  const cw = w / COLS
-  const ch = h / ROWS
-  let svg = '<svg width="' + w + '" height="' + h + '" xmlns="http://www.w3.org/2000/svg">'
-  for (let c = 0; c < COLS; c++) {
-    for (let r = 0; r < ROWS; r++) {
-      const x = c * cw
-      const y = r * ch
-      const label = colLabel(c) + (r + 1)
-      svg += '<rect x="' + x + '" y="' + y + '" width="' + cw + '" height="' + ch + '" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>'
-      svg += '<text x="' + (x + 4) + '" y="' + (y + 14) + '" font-size="10" fill="rgba(255,255,255,0.5)" font-family="monospace">' + label + '</text>'
-    }
-  }
-  svg += '</svg>'
-  return svg
-}
-
-function buildHighlightSvg(w: number, h: number, cells: string[], textLength: number): string {
-  const cw = w / COLS
-  const ch = h / ROWS
-  const charWidth = cw / 6
-  const highlightWidth = Math.min(textLength * charWidth, cw * 3)
-
-  let svg = '<svg width="' + w + '" height="' + h + '" xmlns="http://www.w3.org/2000/svg">'
-
-  for (const cell of cells) {
-    const col = cell.charCodeAt(0) - 65
-    const row = parseInt(cell.slice(1)) - 1
-    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) continue
-    const x = col * cw
-    const y = row * ch
-    svg += '<rect x="' + x + '" y="' + y + '" width="' + highlightWidth + '" height="' + ch + '" fill="rgba(112,78,253,0.35)" rx="3"/>'
-  }
-
-  svg += '</svg>'
-  return svg
-}
-
 async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetText?: string): Promise<string | null> {
   try {
     const createRes = await fetch('https://api.vimeo.com/videos/' + vimeoId + '/pictures', {
@@ -119,88 +74,45 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
     const cropTop = Math.floor(origHeight * 0.13)
     const croppedHeight = origHeight - cropTop
 
-    const VISION_WIDTH = 600
-    const VISION_HEIGHT = Math.round((croppedHeight / origWidth) * VISION_WIDTH)
+    const W = 1280
+    const H = Math.round((croppedHeight / origWidth) * W)
 
-    let visionBuffer = await image
+    let finalBuffer = await image
       .extract({ left: 0, top: cropTop, width: origWidth, height: croppedHeight })
-      .resize(VISION_WIDTH, VISION_HEIGHT, { fit: 'fill' })
+      .resize(W, H, { fit: 'fill' })
       .jpeg({ quality: 90 })
       .toBuffer()
 
     if (targetText && targetText.trim()) {
       try {
-        const gridSvg = buildGridSvg(VISION_WIDTH, VISION_HEIGHT)
-        const gridOverlay = Buffer.from(gridSvg)
+        const arrowX = Math.round(W * 0.5)
+        const arrowY = Math.round(H * 0.65)
 
-        const imageWithGrid = await sharp(visionBuffer)
-          .composite([{ input: gridOverlay, blend: 'over' }])
+        const label = targetText.slice(0, 20)
+        const labelWidth = Math.max(160, label.length * 9)
+
+        const arrowSvg =
+          '<svg width="' + W + '" height="' + H + '" xmlns="http://www.w3.org/2000/svg">' +
+          '<defs>' +
+          '<marker id="ah" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">' +
+          '<polygon points="0 0, 10 3.5, 0 7" fill="#704EFD"/>' +
+          '</marker>' +
+          '</defs>' +
+          '<line x1="' + arrowX + '" y1="' + (arrowY - 60) + '" x2="' + arrowX + '" y2="' + (arrowY - 10) + '" stroke="#704EFD" stroke-width="4" marker-end="url(#ah)"/>' +
+          '<rect x="' + (arrowX - labelWidth / 2) + '" y="' + (arrowY - 95) + '" width="' + labelWidth + '" height="28" rx="6" fill="#704EFD"/>' +
+          '<text x="' + arrowX + '" y="' + (arrowY - 75) + '" text-anchor="middle" font-size="13" fill="white" font-family="sans-serif">' + label + '</text>' +
+          '</svg>'
+
+        const arrowOverlay = Buffer.from(arrowSvg)
+
+        finalBuffer = await sharp(finalBuffer)
+          .composite([{ input: arrowOverlay, blend: 'over' }])
           .jpeg({ quality: 90 })
           .toBuffer()
 
-        const base64Image = imageWithGrid.toString('base64')
-
-        const cellList = []
-        for (let r = 0; r < ROWS; r++) {
-          for (let c = 0; c < COLS; c++) {
-            cellList.push(colLabel(c) + (r + 1))
-          }
-        }
-
-        const visionPrompt =
-          'Esta imagen tiene una grilla de ' + COLS + ' columnas (A-' + colLabel(COLS - 1) + ') y ' + ROWS + ' filas (1-' + ROWS + '). ' +
-          'Las celdas estan etiquetadas como A1, B1... en la esquina superior izquierda de cada celda.\n\n' +
-          'Encuentra el texto o elemento: "' + targetText + '"\n\n' +
-          'Indica en que celda o celdas esta ese texto. Si ocupa mas de una celda, incluye todas.\n\n' +
-          'Responde UNICAMENTE en JSON:\n{"found": true, "cells": ["B3", "C3"]}\n\n' +
-          'Si NO lo encuentras:\n{"found": false}\n\n' +
-          'Responde UNICAMENTE con el JSON.'
-
-        const visionRes = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': process.env.ANTHROPIC_API_KEY!,
-            'anthropic-version': '2023-06-01',
-          },
-          body: JSON.stringify({
-            model: 'claude-sonnet-4-6',
-            max_tokens: 200,
-            messages: [{
-              role: 'user',
-              content: [
-                {
-                  type: 'image',
-                  source: { type: 'base64', media_type: 'image/jpeg', data: base64Image },
-                },
-                { type: 'text', text: visionPrompt },
-              ],
-            }],
-          }),
-        })
-
-        const visionData = await visionRes.json()
-        const visionText = visionData.content?.[0]?.text?.trim() ?? '{}'
-        const cleaned = visionText
-          .replace(/^```json\s*/i, '')
-          .replace(/^```\s*/i, '')
-          .replace(/\s*```$/i, '')
-          .trim()
-        const result = JSON.parse(cleaned)
-
-        if (result.found && result.cells?.length > 0) {
-          const highlightSvg = buildHighlightSvg(VISION_WIDTH, VISION_HEIGHT, result.cells, targetText.length)
-          const highlightOverlay = Buffer.from(highlightSvg)
-
-          visionBuffer = await sharp(visionBuffer)
-            .composite([{ input: highlightOverlay, blend: 'over' }])
-            .jpeg({ quality: 90 })
-            .toBuffer()
-
-          console.log('Highlighted "' + targetText + '" in cells: ' + result.cells.join(', '))
-        }
+        console.log('Arrow added for: "' + targetText + '"')
       } catch (e: any) {
-        console.log('Vision error: ' + e.message)
+        console.log('Arrow error: ' + e.message)
       }
     }
 
@@ -208,7 +120,7 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
 
     const { error } = await supabaseAdmin.storage
       .from('article-images')
-      .upload(fileName, visionBuffer, { contentType: 'image/jpeg', upsert: true })
+      .upload(fileName, finalBuffer, { contentType: 'image/jpeg', upsert: true })
 
     if (error) return null
 
@@ -314,9 +226,11 @@ export async function POST(req: NextRequest) {
 
       for (const step of steps.slice(0, 5)) {
         if (!step.timestamp || step.timestamp <= 0) continue
+        console.log('Taking screenshot for: ' + step.description + ' at ' + step.timestamp + 's')
         const screenshotUrl = await takeVimeoScreenshot(vimeoId, step.timestamp, step.highlightText)
         if (screenshotUrl) {
           screenshots.push({ description: step.description, url: screenshotUrl, timestamp: step.timestamp })
+          console.log('Screenshot added: ' + screenshotUrl)
         }
       }
 
