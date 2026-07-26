@@ -94,10 +94,10 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
         const visionPrompt =
           'En esta imagen de una interfaz web, encuentra la ubicacion EXACTA del texto o boton: "' + targetText + '"\n\n' +
           'Es muy importante que las coordenadas sean PRECISAS - marca solo el texto exacto, no el area circundante.\n\n' +
-          'Si lo encuentras, responde UNICAMENTE en JSON:\n{"found": true, "x": numero, "y": numero, "width": numero, "height": numero}\n\n' +
+          'Si lo encuentras, responde UNICAMENTE en JSON con coordenadas RELATIVAS (valores entre 0.0 y 1.0, donde 0,0 es esquina superior izquierda y 1,1 es esquina inferior derecha):\n' +
+          '{"found": true, "x": 0.45, "y": 0.23, "width": 0.12, "height": 0.04}\n\n' +
           'Si NO lo encuentras, responde:\n{"found": false}\n\n' +
-          'La imagen tiene exactamente ' + VISION_WIDTH + 'x' + VISION_HEIGHT + ' pixeles. ' +
-          'Las coordenadas deben estar dentro de ese rango. Responde UNICAMENTE con el JSON.'
+          'Responde UNICAMENTE con el JSON.'
 
         const visionRes = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
@@ -133,10 +133,10 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
 
         if (coords.found && coords.x >= 0 && coords.y >= 0) {
           const padding = 4
-          const rx = Math.max(0, coords.x - padding)
-          const ry = Math.max(0, coords.y - padding)
-          const rw = Math.min(VISION_WIDTH - rx, (coords.width ?? 100) + padding * 2)
-          const rh = Math.min(VISION_HEIGHT - ry, (coords.height ?? 30) + padding * 2)
+          const rx = Math.max(0, Math.round(coords.x * VISION_WIDTH) - padding)
+          const ry = Math.max(0, Math.round(coords.y * VISION_HEIGHT) - padding)
+          const rw = Math.min(VISION_WIDTH - rx, Math.round(coords.width * VISION_WIDTH) + padding * 2)
+          const rh = Math.min(VISION_HEIGHT - ry, Math.round(coords.height * VISION_HEIGHT) + padding * 2)
 
           const overlay = Buffer.from(
             '<svg width="' + VISION_WIDTH + '" height="' + VISION_HEIGHT + '">' +
