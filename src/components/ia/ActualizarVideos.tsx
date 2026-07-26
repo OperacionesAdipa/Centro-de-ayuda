@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { ArticlePreviewPanel } from '@/components/ArticlePreviewPanel'
 
 interface VimeoVideo {
   id: number
@@ -34,6 +35,8 @@ export function ActualizarVideos() {
   const [linkingVideo, setLinkingVideo] = useState<number | null>(null)
   const [articleSearch, setArticleSearch] = useState('')
   const [selectedArticles, setSelectedArticles] = useState<number[]>([])
+  const [previewArticleId, setPreviewArticleId] = useState<number | null>(null)
+  const [changingStatus, setChangingStatus] = useState<number | null>(null)
 
   useEffect(() => { loadData() }, [])
 
@@ -85,6 +88,17 @@ export function ActualizarVideos() {
     setRegenerating(null)
   }
 
+  async function changeStatus(articleId: number, status: string) {
+    setChangingStatus(articleId)
+    await fetch(`/api/agent/articles/${articleId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    })
+    await loadData()
+    setChangingStatus(null)
+  }
+
   async function linkArticles(videoId: number) {
     for (const articleId of selectedArticles) {
       await fetch(`/api/agent/vimeo/${videoId}/articles`, {
@@ -117,24 +131,37 @@ export function ActualizarVideos() {
 
   return (
     <div>
-      <div className="agent-side-card" style={{ marginBottom: 24 }}>
-        <div className="agent-side-title">Agregar video de Vimeo</div>
-        <p className="agent-side-desc">Pega la URL del video. Se obtendrá el título y la transcripción automáticamente.</p>
+      {/* Agregar nuevo video */}
+      <div style={{ background: 'linear-gradient(135deg, #e0f2fe, #fff)', border: '1.5px solid #0ea5e9', borderRadius: 12, padding: '18px 20px', marginBottom: 20 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#0284c7', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+          🎬 Agregar video de Vimeo
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10 }}>Pega la URL del video. Se obtendrá el título y la transcripción automáticamente.</p>
         <div style={{ display: 'flex', gap: 10 }}>
           <input className="agent-input" type="url" placeholder="https://vimeo.com/123456789" value={newUrl} onChange={(e) => setNewUrl(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addVideo()} />
-          <button className="agent-nav-btn primary" onClick={addVideo} disabled={adding}>{adding ? 'Agregando...' : '+ Agregar video'}</button>
+          <button style={{ background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: 99, padding: '8px 16px', fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={addVideo} disabled={adding}>
+            {adding ? 'Agregando...' : '+ Agregar video'}
+          </button>
         </div>
       </div>
 
-      <input
-        className="agent-search"
-        type="text"
-        placeholder="Buscar por título o URL de video..."
-        value={searchVideo}
-        onChange={(e) => setSearchVideo(e.target.value)}
-        style={{ marginBottom: 16, width: '100%' }}
-      />
+      {/* Buscador */}
+      <div style={{ background: '#fff', border: '0.5px solid var(--border)', borderRadius: 10, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ fontSize: 16, color: 'var(--muted)' }}>🔍</span>
+        <input
+          className="agent-search"
+          type="text"
+          placeholder="Buscar por título o URL de video..."
+          value={searchVideo}
+          onChange={(e) => setSearchVideo(e.target.value)}
+          style={{ flex: 1, border: 'none', padding: 0, outline: 'none' }}
+        />
+        {searchVideo && (
+          <button onClick={() => setSearchVideo('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 14 }}>✕</button>
+        )}
+      </div>
 
+      {/* Listado */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {filteredVideos.length === 0 && <div className="agent-empty">No se encontraron videos.</div>}
         {filteredVideos.map((v) => (
@@ -180,10 +207,34 @@ export function ActualizarVideos() {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
                     {v.articles.map((art) => (
-                      <div key={art.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', padding: '8px 12px', borderRadius: 8, border: '0.5px solid var(--border)' }}>
+                      <div key={art.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', padding: '10px 12px', borderRadius: 8, border: '0.5px solid var(--border)' }}>
                         <span style={{ fontSize: 13, flex: 1 }}>{art.title}</span>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                          <span className={`agent-status ${art.status}`}>{art.status === 'published' ? 'Publicado' : art.status === 'draft' ? 'Borrador' : 'Pendiente'}</span>
+                          <select
+                            value={art.status}
+                            onChange={(e) => changeStatus(art.id, e.target.value)}
+                            disabled={changingStatus === art.id}
+                            style={{
+                              fontSize: 11,
+                              padding: '3px 8px',
+                              borderRadius: 99,
+                              border: '0.5px solid var(--border)',
+                              background: art.status === 'published' ? '#eaf3de' : art.status === 'draft' ? '#f1efe8' : '#faeeda',
+                              color: art.status === 'published' ? '#3b6d11' : art.status === 'draft' ? '#5f5e5a' : '#854f0b',
+                              cursor: 'pointer',
+                              outline: 'none',
+                            }}
+                          >
+                            <option value="published">Publicado</option>
+                            <option value="draft">Borrador</option>
+                            <option value="pending_review">Pendiente</option>
+                          </select>
+                          <button
+                            onClick={() => setPreviewArticleId(art.id)}
+                            style={{ fontSize: 11, color: '#0ea5e9', background: 'none', border: 'none', cursor: 'pointer' }}
+                          >
+                            Ver
+                          </button>
                           <Link href={`/agentes/editar/${art.id}`} className="agent-action-btn" style={{ fontSize: 11 }}>Editar</Link>
                           <button className="agent-url-remove" onClick={() => unlinkArticle(v.id, art.id)}>✕</button>
                         </div>
@@ -207,11 +258,17 @@ export function ActualizarVideos() {
                             <div style={{ fontSize: 13, color: 'var(--dark)' }}>{a.title}</div>
                             <div style={{ fontSize: 11, color: 'var(--muted)' }}>{a.category_name} · {a.section_name}</div>
                           </div>
+                          <button
+                            onClick={(e) => { e.preventDefault(); setPreviewArticleId(a.id) }}
+                            style={{ fontSize: 11, color: '#0ea5e9', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
+                          >
+                            Ver
+                          </button>
                         </label>
                       ))}
                     </div>
                     <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                      <button className="agent-nav-btn primary" onClick={() => linkArticles(v.id)} disabled={selectedArticles.length === 0}>
+                      <button style={{ background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: 99, padding: '7px 14px', fontSize: 13, cursor: 'pointer' }} onClick={() => linkArticles(v.id)} disabled={selectedArticles.length === 0}>
                         Vincular {selectedArticles.length > 0 ? `(${selectedArticles.length})` : ''}
                       </button>
                       <button className="agent-nav-btn" onClick={() => { setLinkingVideo(null); setSelectedArticles([]); setArticleSearch('') }}>Cancelar</button>
@@ -225,6 +282,8 @@ export function ActualizarVideos() {
           </div>
         ))}
       </div>
+
+      <ArticlePreviewPanel articleId={previewArticleId} onClose={() => setPreviewArticleId(null)} />
     </div>
   )
 }
