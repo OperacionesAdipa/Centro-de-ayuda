@@ -74,7 +74,7 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
     const metadata = await image.metadata()
     const width = metadata.width ?? 1280
     const height = metadata.height ?? 720
-    const cropTop = Math.floor(height * 0.12)
+    const cropTop = Math.floor(height * 0.16)
     const croppedHeight = height - cropTop
 
     let croppedBuffer = await image
@@ -86,7 +86,7 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
       try {
         const base64Image = croppedBuffer.toString('base64')
 
-        const visionPrompt = 'En esta imagen de una interfaz web, busca el texto o elemento: "' + targetText + '"\n\nSi lo encuentras, responde UNICAMENTE en JSON con las coordenadas aproximadas en pixeles:\n{"found": true, "x": numero, "y": numero, "width": numero, "height": numero}\n\nSi NO lo encuentras, responde:\n{"found": false}\n\nLa imagen tiene ' + width + 'x' + croppedHeight + ' pixeles. Responde UNICAMENTE con el JSON.'
+        const visionPrompt = 'En esta imagen de una interfaz web, encuentra la ubicacion EXACTA del texto o boton: "' + targetText + '"\n\nEs muy importante que las coordenadas sean PRECISAS - marca solo el texto exacto, no el area circundante.\n\nSi lo encuentras, responde UNICAMENTE en JSON:\n{"found": true, "x": numero, "y": numero, "width": numero, "height": numero}\n\nSi NO lo encuentras, responde:\n{"found": false}\n\nLa imagen tiene ' + width + 'x' + croppedHeight + ' pixeles. Responde UNICAMENTE con el JSON.'
 
         const visionRes = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
@@ -124,7 +124,7 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
         const coords = JSON.parse(cleaned)
 
         if (coords.found && coords.x >= 0 && coords.y >= 0) {
-          const padding = 8
+          const padding = 3
           const rx = Math.max(0, coords.x - padding)
           const ry = Math.max(0, coords.y - padding)
           const rw = Math.min(width - rx, coords.width + padding * 2)
