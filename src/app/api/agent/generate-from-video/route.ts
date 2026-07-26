@@ -72,21 +72,32 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
     const rawBuffer = Buffer.from(await imgRes.arrayBuffer())
     const image = sharp(rawBuffer)
     const metadata = await image.metadata()
-    const width = metadata.width ?? 1280
-    const height = metadata.height ?? 720
-    const cropTop = Math.floor(height * 0.13)
-    const croppedHeight = height - cropTop
+    const origWidth = metadata.width ?? 1280
+    const origHeight = metadata.height ?? 720
 
-    let croppedBuffer = await image
-      .extract({ left: 0, top: cropTop, width, height: croppedHeight })
+    const cropTop = Math.floor(origHeight * 0.13)
+    const croppedHeight = origHeight - cropTop
+
+    const VISION_WIDTH = 1280
+    const VISION_HEIGHT = Math.round((croppedHeight / origWidth) * VISION_WIDTH)
+
+    let visionBuffer = await image
+      .extract({ left: 0, top: cropTop, width: origWidth, height: croppedHeight })
+      .resize(VISION_WIDTH, VISION_HEIGHT, { fit: 'fill' })
       .jpeg({ quality: 90 })
       .toBuffer()
 
     if (targetText && targetText.trim()) {
       try {
-        const base64Image = croppedBuffer.toString('base64')
+        const base64Image = visionBuffer.toString('base64')
 
-        const visionPrompt = 'En esta imagen de una interfaz web, encuentra la ubicacion EXACTA del texto o boton: "' + targetText + '"\n\nIMPORTANTE: Las coordenadas x,y deben ser la esquina superior IZQUIERDA del elemento. El width y height deben ser el tamano EXACTO del texto, no del area circundante.\n\nSi lo encuentras, responde UNICAMENTE en JSON:\n{"found": true, "x": numero, "y": numero, "width": numero, "height": numero}\n\nSi NO lo encuentras, responde:\n{"found": false}\n\nLa imagen tiene ' + width + 'x' + croppedHeight + ' pixeles. Se muy preciso con las coordenadas. Responde UNICAMENTE con el JSON.'
+        const visionPrompt =
+          'En esta imagen de una interfaz web, encuentra la ubicacion EXACTA del texto o boton: "' + targetText + '"\n\n' +
+          'Es muy importante que las coordenadas sean PRECISAS - marca solo el texto exacto, no el area circundante.\n\n' +
+          'Si lo encuentras, responde UNICAMENTE en JSON:\n{"found": true, "x": numero, "y": numero, "width": numero, "height": numero}\n\n' +
+          'Si NO lo encuentras, responde:\n{"found": false}\n\n' +
+          'La imagen tiene exactamente ' + VISION_WIDTH + 'x' + VISION_HEIGHT + ' pixeles. ' +
+          'Las coordenadas deben estar dentro de ese rango. Responde UNICAMENTE con el JSON.'
 
         const visionRes = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
@@ -103,16 +114,9 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
               content: [
                 {
                   type: 'image',
-                  source: {
-                    type: 'base64',
-                    media_type: 'image/jpeg',
-                    data: base64Image,
-                  },
+                  source: { type: 'base64', media_type: 'image/jpeg', data: base64Image },
                 },
-                {
-                  type: 'text',
-                  text: visionPrompt,
-                },
+                { type: 'text', text: visionPrompt },
               ],
             }],
           }),
@@ -120,29 +124,33 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
 
         const visionData = await visionRes.json()
         const visionText = visionData.content?.[0]?.text?.trim() ?? '{}'
-        const cleaned = visionText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim()
+        const cleaned = visionText
+          .replace(/^```json\s*/i, '')
+          .replace(/^```\s*/i, '')
+          .replace(/\s*```$/i, '')
+          .trim()
         const coords = JSON.parse(cleaned)
 
         if (coords.found && coords.x >= 0 && coords.y >= 0) {
-          const padding = 3
+          const padding = 4
           const rx = Math.max(0, coords.x - padding)
           const ry = Math.max(0, coords.y - padding)
-          const rw = Math.min(width - rx, coords.width + padding * 2)
-          const rh = Math.min(croppedHeight - ry, coords.height + padding * 2)
+          const rw = Math.min(VISION_WIDTH - rx, (coords.width ?? 100) + padding * 2)
+          const rh = Math.min(VISION_HEIGHT - ry, (coords.height ?? 30) + padding * 2)
 
           const overlay = Buffer.from(
-            '<svg width="' + width + '" height="' + croppedHeight + '">' +
+            '<svg width="' + VISION_WIDTH + '" height="' + VISION_HEIGHT + '">' +
             '<rect x="' + rx + '" y="' + ry + '" width="' + rw + '" height="' + rh + '" ' +
-            'fill="rgba(112,78,253,0.1)" stroke="#704EFD" stroke-width="3" rx="4"/>' +
+            'fill="rgba(112,78,253,0.12)" stroke="#704EFD" stroke-width="3" rx="4"/>' +
             '</svg>'
           )
 
-          croppedBuffer = await sharp(croppedBuffer)
+          visionBuffer = await sharp(visionBuffer)
             .composite([{ input: overlay, blend: 'over' }])
             .jpeg({ quality: 90 })
             .toBuffer()
 
-          console.log('Highlighted: "' + targetText + '" at x=' + coords.x + ' y=' + coords.y)
+          console.log('Highlighted "' + targetText + '" at x=' + coords.x + ' y=' + coords.y)
         }
       } catch (e: any) {
         console.log('Vision error: ' + e.message)
@@ -153,7 +161,7 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
 
     const { error } = await supabaseAdmin.storage
       .from('article-images')
-      .upload(fileName, croppedBuffer, { contentType: 'image/jpeg', upsert: true })
+      .upload(fileName, visionBuffer, { contentType: 'image/jpeg', upsert: true })
 
     if (error) {
       console.log('Supabase upload error: ' + error.message)
