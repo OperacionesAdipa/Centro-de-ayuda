@@ -119,9 +119,9 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
                   flexShrink: 0,
                   transition: 'all 0.15s',
                 }}
-                title={'👁 ' + cat.name}
+                title={'ver ' + cat.name}
               >
-                Ver
+                👁
               </Link>
             </div>
 
