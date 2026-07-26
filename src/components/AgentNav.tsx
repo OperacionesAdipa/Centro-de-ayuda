@@ -23,40 +23,127 @@ export function AgentNav() {
   }
 
   const links = [
-    { href: '/agentes', label: 'Portal', exact: true },
-    { href: '/agentes/ia', label: 'Centro IA' },
-    { href: '/agentes/nuevo', label: '+ Nuevo' },
+    { href: '/agentes', label: '📋 Todos los artículos', exact: true },
+    { href: '/agentes/ia', label: '✨ Generar con IA' },
+    { href: '/agentes/nuevo', label: '✏️ Nuevo artículo' },
   ]
 
   return (
-    <div className="agent-header">
-      <div className="agent-header-left">
+    <div style={{
+      background: '#fff',
+      borderBottom: '0.5px solid var(--border)',
+      padding: '0 24px',
+      height: 60,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      position: 'sticky',
+      top: 0,
+      zIndex: 100,
+      gap: 16,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <button
           onClick={goBack}
-          className="agent-nav-btn"
-          title="Volver atras"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '6px 12px',
+            borderRadius: 99,
+            border: '0.5px solid var(--border)',
+            background: '#fff',
+            cursor: 'pointer',
+            fontSize: 13,
+            color: 'var(--muted)',
+            transition: 'all 0.15s',
+          }}
         >
-          Volver
+          ← Volver
         </button>
         <Link href="/agentes">
-          <img src="https://adipa.cl/content/uploads/2022/10/logo-adipa.svg" alt="ADIPA" style={{ height: 28, marginLeft: 8 }} />
+          <img src="https://adipa.cl/content/uploads/2022/10/logo-adipa.svg" alt="ADIPA" style={{ height: 26, display: 'block' }} />
         </Link>
-        <span className="agent-header-title">Modo edicion</span>
+        <div style={{
+          fontSize: 11,
+          fontWeight: 600,
+          color: 'var(--purple)',
+          background: 'var(--lp)',
+          padding: '3px 10px',
+          borderRadius: 99,
+          letterSpacing: '0.05em',
+          textTransform: 'uppercase',
+        }}>
+          Portal agentes
+        </div>
       </div>
-      <nav className="agent-nav-links">
+
+      <nav style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         {links.map(({ href, label, exact }) => {
           const isActive = exact ? pathname === href : pathname.startsWith(href)
           return (
-            <Link key={href} href={href} className={`agent-nav-btn ${isActive ? 'active' : ''}`}>
+            <Link
+              key={href}
+              href={href}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '7px 14px',
+                borderRadius: 99,
+                fontSize: 13,
+                fontWeight: isActive ? 600 : 400,
+                textDecoration: 'none',
+                transition: 'all 0.15s',
+                background: isActive ? 'var(--purple)' : '#fff',
+                color: isActive ? '#fff' : 'var(--dark)',
+                border: isActive ? '0.5px solid var(--purple)' : '0.5px solid var(--border)',
+              }}
+            >
               {label}
             </Link>
           )
         })}
-        <Link href="/" target="_blank" className="agent-nav-btn">
-          Ver sitio
+
+        <div style={{ width: 1, height: 24, background: 'var(--border)', margin: '0 4px' }} />
+
+        <Link
+          href="/"
+          target="_blank"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '7px 14px',
+            borderRadius: 99,
+            fontSize: 13,
+            textDecoration: 'none',
+            color: 'var(--purple)',
+            border: '0.5px solid rgba(112,78,253,0.25)',
+            background: 'var(--lp)',
+            transition: 'all 0.15s',
+          }}
+        >
+          👁 Vista estudiante
         </Link>
-        <button className="agent-nav-btn" onClick={logout}>
-          Cerrar sesion
+
+        <button
+          onClick={logout}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '7px 14px',
+            borderRadius: 99,
+            fontSize: 13,
+            cursor: 'pointer',
+            color: '#e24b4a',
+            border: '0.5px solid rgba(226,75,74,0.25)',
+            background: '#fff',
+            transition: 'all 0.15s',
+          }}
+        >
+          Cerrar sesión
         </button>
       </nav>
     </div>
