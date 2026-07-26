@@ -128,7 +128,7 @@ export function GenerarDesdeVideo() {
       clearTimeout(timeoutId)
 
       const data = await res.json()
-      if (res.ok) {
+      if (res.ok && data.created?.length > 0) {
         const articlesWithBody = await Promise.all(
           data.created.map(async (a: { id: number; title: string }) => {
             const artRes = await fetch(`/api/agent/articles/${a.id}`)
@@ -143,7 +143,24 @@ export function GenerarDesdeVideo() {
       }
     } catch (e: any) {
       if (e.name === 'AbortError') {
-        setError('La generación tardó demasiado. Los artículos pueden haberse creado — revisa el portal.')
+        const vimeoRes = await fetch('/api/agent/vimeo')
+        const vimeoData = await vimeoRes.json()
+        const currentVideo = (vimeoData.videos ?? []).find((v: any) => v.id === videoId)
+        const linkedArticleIds = (currentVideo?.articles ?? []).map((a: any) => a.id)
+
+        if (linkedArticleIds.length > 0) {
+          const articlesWithBody = await Promise.all(
+            linkedArticleIds.slice(-questionList.length).map(async (id: number) => {
+              const artRes = await fetch(`/api/agent/articles/${id}`)
+              const artData = await artRes.json()
+              return { id, title: artData.article?.title ?? '', body: artData.article?.body ?? '', published: false }
+            })
+          )
+          setCreatedArticles(articlesWithBody.filter(a => a.title))
+          setQuestions('')
+        } else {
+          setError('La generacion tardo demasiado. Los articulos pueden haberse creado — revisa el portal.')
+        }
       } else {
         setError(`Error: ${e.message}`)
       }
@@ -178,7 +195,7 @@ export function GenerarDesdeVideo() {
         <div style={{ maxWidth: 800 }}>
           <div className="agent-side-card" style={{ marginBottom: 16, borderTop: '3px solid #0ea5e9' }}>
             <div className="agent-side-title">Video de Vimeo</div>
-            <p className="agent-side-desc">Ingresa la URL del video desde el que se generarán los artículos. Se guardará automáticamente en "Actualizar artículos con video".</p>
+            <p className="agent-side-desc">Ingresa la URL del video desde el que se generaran los articulos. Se guardara automaticamente en "Actualizar articulos con video".</p>
             {!videoId ? (
               <div style={{ display: 'flex', gap: 10 }}>
                 <input
@@ -216,27 +233,27 @@ export function GenerarDesdeVideo() {
                 onClick={suggestQuestions}
                 disabled={suggesting || !videoId}
               >
-                {suggesting ? 'Sugiriendo...' : 'Sugerir desde transcripción'}
+                {suggesting ? 'Sugiriendo...' : 'Sugerir desde transcripcion'}
               </button>
             </div>
-            <p className="agent-side-desc">Escribe una pregunta por línea o usa "Sugerir desde transcripción".</p>
+            <p className="agent-side-desc">Escribe una pregunta por linea o usa "Sugerir desde transcripcion".</p>
             <textarea
               className="agent-textarea"
-              placeholder={`¿Cómo inicio sesión?\n¿Cómo actualizo mis datos?\n¿Cómo cambio mi contraseña?`}
+              placeholder={'Como inicio sesion?\nComo actualizo mis datos?\nComo cambio mi contrasena?'}
               value={questions}
               onChange={(e) => setQuestions(e.target.value)}
               rows={6}
             />
             {questions.trim() && (
               <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
-                {questions.split('\n').filter(q => q.trim()).length} artículo(s) se crearán con capturas de pantalla del video
+                {questions.split('\n').filter(q => q.trim()).length} articulo(s) se crearan con capturas de pantalla del video
               </div>
             )}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
             <div className="agent-side-card">
-              <div className="agent-side-title">Categoría y sección</div>
+              <div className="agent-side-title">Categoria y seccion</div>
               <CategorySectionSelector
                 categories={categories}
                 sections={sections}
@@ -252,14 +269,14 @@ export function GenerarDesdeVideo() {
             </div>
 
             <div className="agent-side-card">
-              <div className="agent-side-title">Países</div>
+              <div className="agent-side-title">Paises</div>
               <div className="agent-country-checks">
                 {[
                   { label: 'pais_chile', name: 'Chile' },
-                  { label: 'pais_mexico', name: 'México' },
+                  { label: 'pais_mexico', name: 'Mexico' },
                   { label: 'pais_colombia', name: 'Colombia' },
                   { label: 'pais_argentina', name: 'Argentina' },
-                  { label: 'pais_todos', name: 'Todos los países' },
+                  { label: 'pais_todos', name: 'Todos los paises' },
                 ].map(({ label, name }) => (
                   <label key={label} className="agent-check-label">
                     <input type="checkbox" checked={selectedCountries.includes(label)} onChange={() => toggleCountry(label)} />
@@ -278,7 +295,7 @@ export function GenerarDesdeVideo() {
 
           {generating && (
             <div style={{ marginBottom: 12, padding: '14px 18px', borderRadius: 8, fontSize: 13, background: '#e0f2fe', color: '#0284c7' }}>
-              Generando artículos con capturas de pantalla del video... Esto puede tomar 2-5 minutos.
+              Generando articulos con capturas de pantalla del video... Esto puede tomar 2-5 minutos.
             </div>
           )}
 
@@ -287,7 +304,7 @@ export function GenerarDesdeVideo() {
             onClick={generate}
             disabled={generating || !videoId || !questions.trim()}
           >
-            {generating ? 'Generando artículos con capturas...' : 'Generar artículos desde video'}
+            {generating ? 'Generando articulos con capturas...' : 'Generar articulos desde video'}
           </button>
         </div>
       ) : (
@@ -295,12 +312,12 @@ export function GenerarDesdeVideo() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
             <div>
               <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--dark)', marginBottom: 4 }}>
-                Se crearon {createdArticles.length} artículo(s) exitosamente
+                Se crearon {createdArticles.length} articulo(s) exitosamente
               </h3>
-              <p style={{ fontSize: 13, color: 'var(--muted)' }}>Los artículos quedaron vinculados al video y pendientes de revisión.</p>
+              <p style={{ fontSize: 13, color: 'var(--muted)' }}>Los articulos quedaron vinculados al video y pendientes de revision.</p>
             </div>
             <button className="agent-nav-btn" onClick={() => { setCreatedArticles([]); setPreviewArticle(null) }}>
-              Generar más artículos
+              Generar mas articulos
             </button>
           </div>
 
@@ -344,7 +361,7 @@ export function GenerarDesdeVideo() {
               </div>
             ) : (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 14, border: '0.5px dashed var(--border)', borderRadius: 'var(--radius)', minHeight: 300 }}>
-                Haz clic en un artículo para previsualizarlo
+                Haz clic en un articulo para previsualizarlo
               </div>
             )}
           </div>
