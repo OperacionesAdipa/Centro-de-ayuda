@@ -7,7 +7,8 @@ import Link from '@tiptap/extension-link'
 import Underline from '@tiptap/extension-underline'
 import TextAlign from '@tiptap/extension-text-align'
 import Placeholder from '@tiptap/extension-placeholder'
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useState } from 'react'
+import { ImageAnnotator } from './ImageAnnotator'
 
 interface Props {
   content: string
@@ -15,6 +16,8 @@ interface Props {
 }
 
 export function RichEditor({ content, onChange }: Props) {
+  const [annotatingUrl, setAnnotatingUrl] = useState<string | null>(null)
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -30,6 +33,13 @@ export function RichEditor({ content, onChange }: Props) {
     },
     editorProps: {
       attributes: { class: 'rich-editor-content' },
+      handleClickOn: (view, pos, node) => {
+        if (node.type.name === 'image') {
+          setAnnotatingUrl(node.attrs.src)
+          return true
+        }
+        return false
+      },
     },
   })
 
@@ -52,6 +62,18 @@ export function RichEditor({ content, onChange }: Props) {
       editor.chain().focus().setLink({ href: url }).run()
     }
   }, [editor])
+
+  function handleAnnotationSave(annotatedUrl: string) {
+    if (!editor || !annotatingUrl) return
+    const html = editor.getHTML()
+    const newHtml = html.replace(
+      new RegExp('src="' + annotatingUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '"', 'g'),
+      'src="' + annotatedUrl + '"'
+    )
+    editor.commands.setContent(newHtml, false)
+    onChange(newHtml)
+    setAnnotatingUrl(null)
+  }
 
   if (!editor) return null
 
@@ -95,7 +117,21 @@ export function RichEditor({ content, onChange }: Props) {
           <button className="toolbar-btn" onClick={() => editor.chain().focus().redo().run()} title="Rehacer" type="button">&#8631;</button>
         </div>
       </div>
-      <EditorContent editor={editor} />
+
+      <div style={{ position: 'relative' }}>
+        <p style={{ fontSize: 11, color: 'var(--muted)', padding: '4px 8px', background: '#f8f8fc', borderBottom: '0.5px solid var(--border)' }}>
+          Haz clic en una imagen para anotarla con un recuadro de resaltado
+        </p>
+        <EditorContent editor={editor} />
+      </div>
+
+      {annotatingUrl && (
+        <ImageAnnotator
+          imageUrl={annotatingUrl}
+          onSave={handleAnnotationSave}
+          onClose={() => setAnnotatingUrl(null)}
+        />
+      )}
     </div>
   )
 }
