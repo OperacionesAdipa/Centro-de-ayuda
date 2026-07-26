@@ -43,7 +43,7 @@ function parseTranscript(vtt: string): { time: number; text: string }[] {
   return entries
 }
 
-async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetText?: string): Promise<string | null> {
+async function takeVimeoScreenshot(vimeoId: string, timestamp: number): Promise<string | null> {
   try {
     const createRes = await fetch('https://api.vimeo.com/videos/' + vimeoId + '/pictures', {
       method: 'POST',
@@ -74,47 +74,10 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
     const cropTop = Math.floor(origHeight * 0.13)
     const croppedHeight = origHeight - cropTop
 
-    const W = 1280
-    const H = Math.round((croppedHeight / origWidth) * W)
-
-    let finalBuffer = await image
+    const finalBuffer = await image
       .extract({ left: 0, top: cropTop, width: origWidth, height: croppedHeight })
-      .resize(W, H, { fit: 'fill' })
       .jpeg({ quality: 90 })
       .toBuffer()
-
-    if (targetText && targetText.trim()) {
-      try {
-        const arrowX = Math.round(W * 0.5)
-        const arrowY = Math.round(H * 0.65)
-
-        const label = targetText.slice(0, 20)
-        const labelWidth = Math.max(160, label.length * 9)
-
-        const arrowSvg =
-          '<svg width="' + W + '" height="' + H + '" xmlns="http://www.w3.org/2000/svg">' +
-          '<defs>' +
-          '<marker id="ah" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">' +
-          '<polygon points="0 0, 10 3.5, 0 7" fill="#704EFD"/>' +
-          '</marker>' +
-          '</defs>' +
-          '<line x1="' + arrowX + '" y1="' + (arrowY - 60) + '" x2="' + arrowX + '" y2="' + (arrowY - 10) + '" stroke="#704EFD" stroke-width="4" marker-end="url(#ah)"/>' +
-          '<rect x="' + (arrowX - labelWidth / 2) + '" y="' + (arrowY - 95) + '" width="' + labelWidth + '" height="28" rx="6" fill="#704EFD"/>' +
-          '<text x="' + arrowX + '" y="' + (arrowY - 75) + '" text-anchor="middle" font-size="13" fill="white" font-family="sans-serif">' + label + '</text>' +
-          '</svg>'
-
-        const arrowOverlay = Buffer.from(arrowSvg)
-
-        finalBuffer = await sharp(finalBuffer)
-          .composite([{ input: arrowOverlay, blend: 'over' }])
-          .jpeg({ quality: 90 })
-          .toBuffer()
-
-        console.log('Arrow added for: "' + targetText + '"')
-      } catch (e: any) {
-        console.log('Arrow error: ' + e.message)
-      }
-    }
 
     const fileName = 'vimeo-' + vimeoId + '-' + Math.floor(timestamp) + '-' + Math.random().toString(36).slice(2) + '.jpg'
 
@@ -125,7 +88,6 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
     if (error) return null
 
     const { data } = supabaseAdmin.storage.from('article-images').getPublicUrl(fileName)
-    console.log('Screenshot success: ' + data.publicUrl)
     return data.publicUrl
   } catch (e: any) {
     console.log('takeVimeoScreenshot error: ' + e.message)
@@ -198,7 +160,7 @@ export async function POST(req: NextRequest) {
           max_tokens: 600,
           messages: [{
             role: 'user',
-            content: 'Analiza esta transcripcion de video tutorial e identifica los timestamps exactos donde se muestra visualmente cada paso para responder la pregunta: "' + question + '"\n\nTRANSCRIPCION CON TIMESTAMPS:\n' + transcriptText.slice(0, 5000) + '\n\nResponde en JSON:\n{\n  "steps": [\n    {\n      "description": "descripcion breve del paso",\n      "timestamp": segundos_exactos,\n      "highlightText": "texto exacto que aparece en pantalla y debe resaltarse, o null"\n    }\n  ]\n}\n\nMaximo 5 pasos. Solo incluye pasos donde hay algo visual importante.\nLos timestamps deben ser numeros enteros positivos mayores a 0.\nhighlightText debe ser el texto exacto que aparece en la interfaz.\nResponde UNICAMENTE con el JSON puro, sin bloques de codigo, sin markdown.',
+            content: 'Analiza esta transcripcion de video tutorial e identifica los timestamps exactos donde se muestra visualmente cada paso para responder la pregunta: "' + question + '"\n\nTRANSCRIPCION CON TIMESTAMPS:\n' + transcriptText.slice(0, 5000) + '\n\nResponde en JSON:\n{\n  "steps": [\n    {\n      "description": "descripcion breve del paso",\n      "timestamp": segundos_exactos\n    }\n  ]\n}\n\nMaximo 5 pasos. Solo incluye pasos donde hay algo visual importante.\nLos timestamps deben ser numeros enteros positivos mayores a 0.\nResponde UNICAMENTE con el JSON puro, sin bloques de codigo, sin markdown.',
           }],
         }),
       })
@@ -207,7 +169,7 @@ export async function POST(req: NextRequest) {
       const rawTimestampText = timestampData.content?.[0]?.text ?? '{}'
       console.log('Claude timestamp response: ' + rawTimestampText)
 
-      let steps: { description: string; timestamp: number; highlightText?: string }[] = []
+      let steps: { description: string; timestamp: number }[] = []
       try {
         const cleanedJson = rawTimestampText
           .replace(/^```json\s*/i, '')
@@ -227,7 +189,7 @@ export async function POST(req: NextRequest) {
       for (const step of steps.slice(0, 5)) {
         if (!step.timestamp || step.timestamp <= 0) continue
         console.log('Taking screenshot for: ' + step.description + ' at ' + step.timestamp + 's')
-        const screenshotUrl = await takeVimeoScreenshot(vimeoId, step.timestamp, step.highlightText)
+        const screenshotUrl = await takeVimeoScreenshot(vimeoId, step.timestamp)
         if (screenshotUrl) {
           screenshots.push({ description: step.description, url: screenshotUrl, timestamp: step.timestamp })
           console.log('Screenshot added: ' + screenshotUrl)
