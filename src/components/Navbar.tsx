@@ -4,25 +4,16 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useCountry } from '@/lib/useCountry'
 
-type FontSize = 'small' | 'normal' | 'large'
-
 export function Navbar() {
   const { country, setCountry, COUNTRIES } = useCountry()
   const [open, setOpen] = useState(false)
-  const [fontOpen, setFontOpen] = useState(false)
   const [darkMode, setDarkMode] = useState(false)
-  const [fontSize, setFontSizeState] = useState<FontSize>('normal')
 
   useEffect(() => {
     const savedDark = localStorage.getItem('adipa_dark_mode')
     if (savedDark === 'true') {
       setDarkMode(true)
       document.documentElement.classList.add('dark')
-    }
-    const savedFont = localStorage.getItem('adipa_font_size') as FontSize
-    if (savedFont) {
-      setFontSizeState(savedFont)
-      document.documentElement.setAttribute('data-font', savedFont)
     }
   }, [])
 
@@ -35,13 +26,6 @@ export function Navbar() {
     } else {
       document.documentElement.classList.remove('dark')
     }
-  }
-
-  function applyFontSize(size: FontSize) {
-    setFontSizeState(size)
-    localStorage.setItem('adipa_font_size', size)
-    document.documentElement.setAttribute('data-font', size)
-    setFontOpen(false)
   }
 
   const flags: Record<string, string> = {
@@ -61,30 +45,13 @@ export function Navbar() {
           <button className="dark-mode-btn" onClick={toggleDark} title={darkMode ? 'Modo claro' : 'Modo oscuro'} aria-label={darkMode ? 'Activar modo claro' : 'Activar modo oscuro'}>
             {darkMode ? '☀️' : '🌙'}
           </button>
-          <button className="font-size-btn" onClick={() => { setFontOpen(!fontOpen); setOpen(false) }} aria-label="Ajustar tamaño de texto">
-            Aa
-          </button>
-          <button className="country-btn" onClick={() => { setOpen(!open); setFontOpen(false) }}>
+          <button className="country-btn" onClick={() => setOpen(!open)}>
             <span>{flags[country] ?? '🌎'}</span>
             <span>{country}</span>
             <span style={{ fontSize: 12 }}>▾</span>
           </button>
         </div>
       </nav>
-
-      {fontOpen && (
-        <div className="font-size-dropdown">
-          <div className="font-size-label">Tamaño de texto</div>
-          <div className="font-size-options">
-            <button className={`font-size-option small ${fontSize === 'small' ? 'active' : ''}`} onClick={() => applyFontSize('small')}>A-</button>
-            <button className={`font-size-option normal ${fontSize === 'normal' ? 'active' : ''}`} onClick={() => applyFontSize('normal')}>A</button>
-            <button className={`font-size-option large ${fontSize === 'large' ? 'active' : ''}`} onClick={() => applyFontSize('large')}>A+</button>
-          </div>
-          <div style={{ marginTop: 8, fontSize: 11, color: 'var(--muted)', textAlign: 'center' }}>
-            {fontSize === 'small' ? 'Texto pequeño' : fontSize === 'large' ? 'Texto grande' : 'Tamaño normal'}
-          </div>
-        </div>
-      )}
 
       {open && (
         <div className="country-dropdown">
