@@ -41,106 +41,89 @@ export function HelpSection({ compact = false }: Props) {
     setShowForm(false)
   }
 
-  if (compact) {
-    return (
-      <div className="help-section-compact">
-        <div className="help-compact-card tutorial">
-          <div className="help-compact-left">
-            <span className="help-compact-icon">&#127916;</span>
-            <div>
-              <div className="help-compact-title">&#191;Necesitas un tutorial?</div>
-              <div className="help-compact-desc">Solicítanos un videotutorial personalizado.</div>
-            </div>
-          </div>
-          <button className="help-card-btn purple" onClick={() => setShowForm(!showForm)}>
-            Solicitar
-          </button>
-        </div>
+  const cardStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16,
+    padding: '14px 20px',
+    borderRadius: 12,
+    border: '0.5px solid var(--border)',
+    background: '#fff',
+    flexWrap: 'wrap' as const,
+  }
 
-        {showForm && !sent && (
-          <div className="help-form" style={{ marginTop: 10 }}>
-            <input className="tutorial-input" type="text" placeholder="Tu nombre" value={name} onChange={(e) => setName(e.target.value)} />
-            <input className="tutorial-input" type="email" placeholder="Tu correo electrónico" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <textarea className="tutorial-input" placeholder="&#191;Qué tutorial necesitas? Descríbelo brevemente..." value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} />
-            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-              <button className="help-card-btn purple" onClick={sendRequest} disabled={sending}>
-                {sending ? 'Enviando...' : 'Enviar solicitud'}
-              </button>
-              <button className="help-card-btn outline" onClick={() => setShowForm(false)}>Cancelar</button>
-            </div>
-          </div>
-        )}
+  const leftStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  }
 
-        {sent && (
-          <div className="help-sent-msg" style={{ marginTop: 10 }}>
-            <span>&#161;Solicitud enviada! &#127881; Te contactaremos pronto.</span>
-            <button className="help-again-btn" onClick={resetForm}>Solicitar otro</button>
-          </div>
-        )}
+  const iconStyle = {
+    fontSize: 24,
+    flexShrink: 0,
+  }
 
-        <div className="help-compact-card video">
-          <div className="help-compact-left">
-            <span className="help-compact-icon">&#128197;</span>
-            <div>
-              <div className="help-compact-title">&#191;Prefieres hablar con alguien?</div>
-              <div className="help-compact-desc">Agenda una videollamada con un especialista.</div>
-            </div>
-          </div>
-          <a href={CALENDAR_LINK} target="_blank" rel="noopener noreferrer" className="help-card-btn blue">
-            Agendar
-          </a>
-        </div>
-      </div>
-    )
+  const titleStyle = {
+    fontSize: 14,
+    fontWeight: 600,
+    color: 'var(--dark)',
+    marginBottom: 2,
+  }
+
+  const descStyle = {
+    fontSize: 12,
+    color: 'var(--muted)',
   }
 
   return (
-    <div className="help-section">
-      <div className="help-card tutorial-card">
-        <div className="help-card-icon">&#127916;</div>
-        <div className="help-card-content">
-          <h3 className="help-card-title">&#191;Necesitas un tutorial?</h3>
-          <p className="help-card-desc">
-            Si no encuentras lo que buscas, solicítanos un videotutorial personalizado y nuestro equipo lo creará para ti.
-          </p>
-          {!showForm && !sent && (
-            <button className="help-card-btn purple" onClick={() => setShowForm(true)}>
-              Solicitar tutorial
-            </button>
-          )}
-          {sent && (
-            <div className="help-sent-msg">
-              <span>&#161;Solicitud enviada! &#127881; Te contactaremos pronto.</span>
-              <button className="help-again-btn" onClick={resetForm}>Solicitar otro</button>
-            </div>
-          )}
-        </div>
-        {showForm && !sent && (
-          <div className="help-form">
-            <input className="tutorial-input" type="text" placeholder="Tu nombre" value={name} onChange={(e) => setName(e.target.value)} />
-            <input className="tutorial-input" type="email" placeholder="Tu correo electrónico" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <textarea className="tutorial-input" placeholder="&#191;Qué tutorial necesitas? Descríbelo brevemente..." value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} />
-            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-              <button className="help-card-btn purple" onClick={sendRequest} disabled={sending}>
-                {sending ? 'Enviando...' : 'Enviar solicitud'}
-              </button>
-              <button className="help-card-btn outline" onClick={() => setShowForm(false)}>Cancelar</button>
-            </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={cardStyle}>
+        <div style={leftStyle}>
+          <span style={iconStyle}>🎬</span>
+          <div>
+            <div style={titleStyle}>¿Necesitas un tutorial?</div>
+            <div style={descStyle}>Solicítanos un videotutorial personalizado.</div>
           </div>
-        )}
+        </div>
+        <button className="help-card-btn purple" onClick={() => setShowForm(!showForm)}>
+          Solicitar
+        </button>
       </div>
 
-      <div className="help-card video-card">
-        <div className="help-card-icon">&#128197;</div>
-        <div className="help-card-content">
-          <h3 className="help-card-title">&#191;Prefieres hablar con alguien?</h3>
-          <p className="help-card-desc">
-            Agenda una videollamada con uno de nuestros especialistas y te ayudamos en tiempo real.
-          </p>
-          <a href={CALENDAR_LINK} target="_blank" rel="noopener noreferrer" className="help-card-btn blue">
-            Agendar videollamada
-          </a>
+      {showForm && !sent && (
+        <div style={{ padding: '16px 20px', borderRadius: 12, border: '0.5px solid var(--border)', background: '#fafafa', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <input className="tutorial-input" type="text" placeholder="Tu nombre" value={name} onChange={(e) => setName(e.target.value)} />
+          <input className="tutorial-input" type="email" placeholder="Tu correo electrónico" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <textarea className="tutorial-input" placeholder="¿Qué tutorial necesitas? Descríbelo brevemente..." value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="help-card-btn purple" onClick={sendRequest} disabled={sending}>
+              {sending ? 'Enviando...' : 'Enviar solicitud'}
+            </button>
+            <button className="help-card-btn outline" onClick={() => setShowForm(false)}>Cancelar</button>
+          </div>
         </div>
+      )}
+
+      {sent && (
+        <div style={{ padding: '12px 20px', borderRadius: 12, background: '#eaf3de', color: '#3b6d11', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span>¡Solicitud enviada! 🎉 Te contactaremos pronto.</span>
+          <button className="help-again-btn" onClick={resetForm}>Solicitar otro</button>
+        </div>
+      )}
+
+      <div style={cardStyle}>
+        <div style={leftStyle}>
+          <span style={iconStyle}>📅</span>
+          <div>
+            <div style={titleStyle}>¿Prefieres hablar con alguien?</div>
+            <div style={descStyle}>Agenda una videollamada con un especialista.</div>
+          </div>
+        </div>
+        <a href={CALENDAR_LINK} target="_blank" rel="noopener noreferrer" className="help-card-btn blue">
+          Agendar
+        </a>
       </div>
     </div>
   )
