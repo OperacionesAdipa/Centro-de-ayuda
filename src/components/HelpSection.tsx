@@ -6,11 +6,7 @@ import { COUNTRY_EMAIL } from '@/lib/countryUtils'
 
 const CALENDAR_LINK = 'https://calendar.google.com/appointments/schedules/AcZssZ133YMSZW5tSEQrDrPk6VWkycf-fQlmoSJgnEjEVleVcrTTWV0DHFBE9EVv6hI2teNPqTII-G5z'
 
-interface Props {
-  compact?: boolean
-}
-
-export function HelpSection({ compact = false }: Props) {
+export function HelpSection() {
   const { country } = useCountry()
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
@@ -42,52 +38,50 @@ export function HelpSection({ compact = false }: Props) {
   }
 
   return (
-    <div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <div style={{ padding: '20px 24px', borderRadius: 14, border: '0.5px solid var(--border)', background: 'linear-gradient(135deg, #f5f3ff, #fff)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <span style={{ fontSize: 28 }}>🎬</span>
-          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--dark)' }}>¿Necesitas un tutorial?</div>
-          <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>Solicítanos un videotutorial personalizado y nuestro equipo lo creará para ti.</div>
-          {!showForm && !sent && (
-            <button className="help-card-btn purple" onClick={() => setShowForm(true)} style={{ alignSelf: 'flex-start', marginTop: 4 }}>
-              Solicitar tutorial
-            </button>
-          )}
-          {sent && (
-            <div style={{ fontSize: 13, color: '#3b6d11', background: '#eaf3de', padding: '8px 12px', borderRadius: 8 }}>
-              ¡Solicitud enviada! 🎉
-              <button className="help-again-btn" onClick={resetForm} style={{ marginLeft: 8 }}>Solicitar otro</button>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div style={{ padding: '20px 24px', borderRadius: 14, border: '0.5px solid var(--border)', background: 'linear-gradient(135deg, #f5f3ff, #fff)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <span style={{ fontSize: 28 }}>🎬</span>
+        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--dark)' }}>¿Necesitas un tutorial?</div>
+        <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>Solicítanos un videotutorial personalizado y nuestro equipo lo creará para ti.</div>
+        {!showForm && !sent && (
+          <button className="help-card-btn purple" onClick={() => setShowForm(true)} style={{ alignSelf: 'flex-start', marginTop: 4 }}>
+            Solicitar tutorial
+          </button>
+        )}
+        {sent && (
+          <div style={{ fontSize: 13, color: '#3b6d11', background: '#eaf3de', padding: '8px 12px', borderRadius: 8 }}>
+            ¡Solicitud enviada! 🎉
+            <button className="help-again-btn" onClick={resetForm} style={{ marginLeft: 8 }}>Solicitar otro</button>
+          </div>
+        )}
+        {showForm && !sent && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+            <input className="tutorial-input" type="text" placeholder="Tu nombre" value={name} onChange={(e) => setName(e.target.value)} />
+            <input className="tutorial-input" type="email" placeholder="Tu correo electrónico" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <textarea className="tutorial-input" placeholder="¿Qué tutorial necesitas?" value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="help-card-btn purple" onClick={sendRequest} disabled={sending}>
+                {sending ? 'Enviando...' : 'Enviar'}
+              </button>
+              <button className="help-card-btn outline" onClick={() => setShowForm(false)}>Cancelar</button>
             </div>
-          )}
-          {showForm && !sent && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
-              <input className="tutorial-input" type="text" placeholder="Tu nombre" value={name} onChange={(e) => setName(e.target.value)} />
-              <input className="tutorial-input" type="email" placeholder="Tu correo electrónico" value={email} onChange={(e) => setEmail(e.target.value)} />
-              <textarea className="tutorial-input" placeholder="¿Qué tutorial necesitas?" value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} />
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="help-card-btn purple" onClick={sendRequest} disabled={sending}>
-                  {sending ? 'Enviando...' : 'Enviar'}
-                </button>
-                <button className="help-card-btn outline" onClick={() => setShowForm(false)}>Cancelar</button>
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
+      </div>
 
-        <div style={{ padding: '20px 24px', borderRadius: 14, border: '0.5px solid var(--border)', background: 'linear-gradient(135deg, #eff8ff, #fff)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <span style={{ fontSize: 28 }}>📅</span>
-          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--dark)' }}>¿Prefieres hablar con alguien?</div>
-          <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>Agenda una videollamada con uno de nuestros especialistas y te ayudamos en tiempo real.</div>
-          
-            href={CALENDAR_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="help-card-btn blue"
-            style={{ alignSelf: 'flex-start', marginTop: 4 }}
-          >
-            Agendar videollamada
-          </a>
-        </div>
+      <div style={{ padding: '20px 24px', borderRadius: 14, border: '0.5px solid var(--border)', background: 'linear-gradient(135deg, #eff8ff, #fff)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <span style={{ fontSize: 28 }}>📅</span>
+        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--dark)' }}>¿Prefieres hablar con alguien?</div>
+        <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>Agenda una videollamada con uno de nuestros especialistas y te ayudamos en tiempo real.</div>
+        
+          href={CALENDAR_LINK}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="help-card-btn blue"
+          style={{ alignSelf: 'flex-start', marginTop: 4 }}
+        >
+          Agendar videollamada
+        </a>
       </div>
     </div>
   )
