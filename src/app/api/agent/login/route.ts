@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { randomBytes } from 'crypto'
 
 const AGENT_EMAIL = 'operaciones@adipa.cl'
-const AGENT_PASSWORD = 'Operacionesadipa123'
+const AGENT_PASSWORD = 'Adipa123'
 
 export async function POST(req: NextRequest) {
   try {
