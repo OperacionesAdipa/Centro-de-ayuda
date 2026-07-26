@@ -2,6 +2,7 @@
 
 import { useCountry } from '@/lib/useCountry'
 import { COUNTRY_DOMAIN } from '@/lib/countryUtils'
+import Link from 'next/link'
 
 export function Footer() {
   const { country } = useCountry()
@@ -17,6 +18,9 @@ export function Footer() {
       <a href={`https://adipa.${domain}/terminos-y-condiciones/`} target="_blank" rel="noopener noreferrer" className="footer-terms">
         Términos y condiciones
       </a>
+      <Link href="/acceso" style={{ fontSize: 10, color: 'rgba(255,255,255,0.08)', marginTop: 4, textDecoration: 'none' }}>
+        ·
+      </Link>
     </footer>
   )
 }
