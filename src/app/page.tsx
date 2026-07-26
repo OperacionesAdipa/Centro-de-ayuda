@@ -96,7 +96,7 @@ export default async function HomePage() {
           </h2>
         </div>
         <FaqSection articles={faqArticles} />
-        <div className="section-divider" />
+        <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, var(--border), transparent)', margin: '8px 0 24px' }} />
         <HelpSection />
         <ContactSection />
       </div>
