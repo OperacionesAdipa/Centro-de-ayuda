@@ -43,6 +43,51 @@ function parseTranscript(vtt: string): { time: number; text: string }[] {
   return entries
 }
 
+const COLS = 8
+const ROWS = 6
+
+function colLabel(c: number): string {
+  return String.fromCharCode(65 + c)
+}
+
+function buildGridSvg(w: number, h: number): string {
+  const cw = w / COLS
+  const ch = h / ROWS
+  let svg = '<svg width="' + w + '" height="' + h + '" xmlns="http://www.w3.org/2000/svg">'
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < ROWS; r++) {
+      const x = c * cw
+      const y = r * ch
+      const label = colLabel(c) + (r + 1)
+      svg += '<rect x="' + x + '" y="' + y + '" width="' + cw + '" height="' + ch + '" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>'
+      svg += '<text x="' + (x + 4) + '" y="' + (y + 14) + '" font-size="10" fill="rgba(255,255,255,0.5)" font-family="monospace">' + label + '</text>'
+    }
+  }
+  svg += '</svg>'
+  return svg
+}
+
+function buildHighlightSvg(w: number, h: number, cells: string[], textLength: number): string {
+  const cw = w / COLS
+  const ch = h / ROWS
+  const charWidth = cw / 6
+  const highlightWidth = Math.min(textLength * charWidth, cw * 3)
+
+  let svg = '<svg width="' + w + '" height="' + h + '" xmlns="http://www.w3.org/2000/svg">'
+
+  for (const cell of cells) {
+    const col = cell.charCodeAt(0) - 65
+    const row = parseInt(cell.slice(1)) - 1
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) continue
+    const x = col * cw
+    const y = row * ch
+    svg += '<rect x="' + x + '" y="' + y + '" width="' + highlightWidth + '" height="' + ch + '" fill="rgba(112,78,253,0.35)" rx="3"/>'
+  }
+
+  svg += '</svg>'
+  return svg
+}
+
 async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetText?: string): Promise<string | null> {
   try {
     const createRes = await fetch('https://api.vimeo.com/videos/' + vimeoId + '/pictures', {
@@ -55,10 +100,7 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
       body: JSON.stringify({ time: Math.floor(timestamp), active: false }),
     })
 
-    if (!createRes.ok) {
-      console.log('Vimeo pictures API error: ' + createRes.status)
-      return null
-    }
+    if (!createRes.ok) return null
 
     const pictureData = await createRes.json()
     const sizes = pictureData.sizes ?? []
@@ -74,7 +116,6 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
     const metadata = await image.metadata()
     const origWidth = metadata.width ?? 1280
     const origHeight = metadata.height ?? 720
-
     const cropTop = Math.floor(origHeight * 0.13)
     const croppedHeight = origHeight - cropTop
 
@@ -89,14 +130,30 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
 
     if (targetText && targetText.trim()) {
       try {
-        const base64Image = visionBuffer.toString('base64')
+        const gridSvg = buildGridSvg(VISION_WIDTH, VISION_HEIGHT)
+        const gridOverlay = Buffer.from(gridSvg)
+
+        const imageWithGrid = await sharp(visionBuffer)
+          .composite([{ input: gridOverlay, blend: 'over' }])
+          .jpeg({ quality: 90 })
+          .toBuffer()
+
+        const base64Image = imageWithGrid.toString('base64')
+
+        const cellList = []
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            cellList.push(colLabel(c) + (r + 1))
+          }
+        }
 
         const visionPrompt =
-          'En esta imagen de una interfaz web, encuentra la ubicacion EXACTA del texto o boton: "' + targetText + '"\n\n' +
-          'Es muy importante que las coordenadas sean PRECISAS - marca solo el texto exacto, no el area circundante.\n\n' +
-          'Si lo encuentras, responde UNICAMENTE en JSON con coordenadas RELATIVAS (valores entre 0.0 y 1.0, donde 0,0 es esquina superior izquierda y 1,1 es esquina inferior derecha):\n' +
-          '{"found": true, "x": 0.45, "y": 0.23, "width": 0.12, "height": 0.04}\n\n' +
-          'Si NO lo encuentras, responde:\n{"found": false}\n\n' +
+          'Esta imagen tiene una grilla de ' + COLS + ' columnas (A-' + colLabel(COLS - 1) + ') y ' + ROWS + ' filas (1-' + ROWS + '). ' +
+          'Las celdas estan etiquetadas como A1, B1... en la esquina superior izquierda de cada celda.\n\n' +
+          'Encuentra el texto o elemento: "' + targetText + '"\n\n' +
+          'Indica en que celda o celdas esta ese texto. Si ocupa mas de una celda, incluye todas.\n\n' +
+          'Responde UNICAMENTE en JSON:\n{"found": true, "cells": ["B3", "C3"]}\n\n' +
+          'Si NO lo encuentras:\n{"found": false}\n\n' +
           'Responde UNICAMENTE con el JSON.'
 
         const visionRes = await fetch('https://api.anthropic.com/v1/messages', {
@@ -129,28 +186,18 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
           .replace(/^```\s*/i, '')
           .replace(/\s*```$/i, '')
           .trim()
-        const coords = JSON.parse(cleaned)
+        const result = JSON.parse(cleaned)
 
-        if (coords.found && coords.x >= 0 && coords.y >= 0) {
-          const padding = 4
-          const rx = Math.max(0, Math.round(coords.x * VISION_WIDTH) - padding)
-          const ry = Math.max(0, Math.round(coords.y * VISION_HEIGHT) - padding)
-          const rw = Math.min(VISION_WIDTH - rx, Math.round(coords.width * VISION_WIDTH) + padding * 2)
-          const rh = Math.min(VISION_HEIGHT - ry, Math.round(coords.height * VISION_HEIGHT) + padding * 2)
-
-          const overlay = Buffer.from(
-            '<svg width="' + VISION_WIDTH + '" height="' + VISION_HEIGHT + '">' +
-            '<rect x="' + rx + '" y="' + ry + '" width="' + rw + '" height="' + rh + '" ' +
-            'fill="rgba(112,78,253,0.12)" stroke="#704EFD" stroke-width="3" rx="4"/>' +
-            '</svg>'
-          )
+        if (result.found && result.cells?.length > 0) {
+          const highlightSvg = buildHighlightSvg(VISION_WIDTH, VISION_HEIGHT, result.cells, targetText.length)
+          const highlightOverlay = Buffer.from(highlightSvg)
 
           visionBuffer = await sharp(visionBuffer)
-            .composite([{ input: overlay, blend: 'over' }])
+            .composite([{ input: highlightOverlay, blend: 'over' }])
             .jpeg({ quality: 90 })
             .toBuffer()
 
-          console.log('Highlighted "' + targetText + '" at x=' + coords.x + ' y=' + coords.y)
+          console.log('Highlighted "' + targetText + '" in cells: ' + result.cells.join(', '))
         }
       } catch (e: any) {
         console.log('Vision error: ' + e.message)
@@ -163,10 +210,7 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
       .from('article-images')
       .upload(fileName, visionBuffer, { contentType: 'image/jpeg', upsert: true })
 
-    if (error) {
-      console.log('Supabase upload error: ' + error.message)
-      return null
-    }
+    if (error) return null
 
     const { data } = supabaseAdmin.storage.from('article-images').getPublicUrl(fileName)
     console.log('Screenshot success: ' + data.publicUrl)
@@ -270,11 +314,9 @@ export async function POST(req: NextRequest) {
 
       for (const step of steps.slice(0, 5)) {
         if (!step.timestamp || step.timestamp <= 0) continue
-        console.log('Taking screenshot for: ' + step.description + ' at ' + step.timestamp + 's')
         const screenshotUrl = await takeVimeoScreenshot(vimeoId, step.timestamp, step.highlightText)
         if (screenshotUrl) {
           screenshots.push({ description: step.description, url: screenshotUrl, timestamp: step.timestamp })
-          console.log('Screenshot added: ' + screenshotUrl)
         }
       }
 
@@ -329,10 +371,7 @@ export async function POST(req: NextRequest) {
         .select()
         .single()
 
-      if (error || !article) {
-        console.log('Article insert error: ' + error?.message)
-        continue
-      }
+      if (error || !article) continue
 
       await supabaseAdmin
         .from('article_vimeo_videos')
