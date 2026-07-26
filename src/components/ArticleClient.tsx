@@ -75,7 +75,7 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
       </div>
 
       <div style={{ marginTop: 24 }}>
-        <HelpSection compact />
+        <HelpSection />
       </div>
 
       {relatedArticles.length > 0 && (
