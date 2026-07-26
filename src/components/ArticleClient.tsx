@@ -74,7 +74,7 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
         </div>
       </div>
 
-      <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, var(--border), transparent)', margin: '32px 0' }} />
+      <div style={{ height: 2, background: 'var(--border)', margin: '32px 0', borderRadius: 2 }} />      
       
       <div style={{ marginTop: 24 }}>
         <HelpSection />
