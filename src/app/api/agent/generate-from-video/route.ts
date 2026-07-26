@@ -78,7 +78,7 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
     const cropTop = Math.floor(origHeight * 0.13)
     const croppedHeight = origHeight - cropTop
 
-    const VISION_WIDTH = 1280
+    const VISION_WIDTH = 600
     const VISION_HEIGHT = Math.round((croppedHeight / origWidth) * VISION_WIDTH)
 
     let visionBuffer = await image
