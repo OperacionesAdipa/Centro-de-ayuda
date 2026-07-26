@@ -74,7 +74,7 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
     const metadata = await image.metadata()
     const width = metadata.width ?? 1280
     const height = metadata.height ?? 720
-    const cropTop = Math.floor(height * 0.16)
+    const cropTop = Math.floor(height * 0.13)
     const croppedHeight = height - cropTop
 
     let croppedBuffer = await image
@@ -86,7 +86,7 @@ async function takeVimeoScreenshot(vimeoId: string, timestamp: number, targetTex
       try {
         const base64Image = croppedBuffer.toString('base64')
 
-        const visionPrompt = 'En esta imagen de una interfaz web, encuentra la ubicacion EXACTA del texto o boton: "' + targetText + '"\n\nEs muy importante que las coordenadas sean PRECISAS - marca solo el texto exacto, no el area circundante.\n\nSi lo encuentras, responde UNICAMENTE en JSON:\n{"found": true, "x": numero, "y": numero, "width": numero, "height": numero}\n\nSi NO lo encuentras, responde:\n{"found": false}\n\nLa imagen tiene ' + width + 'x' + croppedHeight + ' pixeles. Responde UNICAMENTE con el JSON.'
+        const visionPrompt = 'En esta imagen de una interfaz web, encuentra la ubicacion EXACTA del texto o boton: "' + targetText + '"\n\nIMPORTANTE: Las coordenadas x,y deben ser la esquina superior IZQUIERDA del elemento. El width y height deben ser el tamano EXACTO del texto, no del area circundante.\n\nSi lo encuentras, responde UNICAMENTE en JSON:\n{"found": true, "x": numero, "y": numero, "width": numero, "height": numero}\n\nSi NO lo encuentras, responde:\n{"found": false}\n\nLa imagen tiene ' + width + 'x' + croppedHeight + ' pixeles. Se muy preciso con las coordenadas. Responde UNICAMENTE con el JSON.'
 
         const visionRes = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
@@ -278,7 +278,7 @@ export async function POST(req: NextRequest) {
             const min = Math.floor(s.timestamp / 60)
             const sec = String(Math.floor(s.timestamp % 60)).padStart(2, '0')
             return 'Paso ' + (i + 1) + ' - "' + s.description + '" (' + min + ':' + sec + '):\n' +
-              '<figure style="margin:12px 0;"><img src="' + s.url + '" alt="' + s.description + '" style="max-width:100%; border-radius:8px; border: 1px solid #e5e7eb;"><figcaption style="font-size:12px; color:#6b7280; margin-top:4px;">' + s.description + '</figcaption></figure>'
+              '<figure style="margin:12px 0;"><img src="' + s.url + '" alt="' + s.description + '" style="max-width:100%; border-radius:8px; border: 1px solid #e5e7eb;"></figure>'
           }).join('\n\n')
         : 'No se pudieron obtener capturas del video. Redacta el articulo con pasos claros y detallados.'
 
