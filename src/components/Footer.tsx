@@ -18,8 +18,8 @@ export function Footer() {
       <a href={`https://adipa.${domain}/terminos-y-condiciones/`} target="_blank" rel="noopener noreferrer" className="footer-terms">
         Términos y condiciones
       </a>
-      <Link href="/acceso" style={{ fontSize: 10, color: 'rgba(255,255,255,0.08)', marginTop: 4, textDecoration: 'none' }}>
-        ·
+      <Link href="/acceso" style={{ fontSize: 10, color: 'rgba(255,255,255,0.12)', marginTop: 4, textDecoration: 'none' }}>
+        Iniciar sesión
       </Link>
     </footer>
   )
