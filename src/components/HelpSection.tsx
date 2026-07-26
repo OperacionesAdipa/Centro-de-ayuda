@@ -40,7 +40,7 @@ export function HelpSection() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
       <div style={{ padding: '20px 24px', borderRadius: 14, border: '0.5px solid var(--border)', background: 'linear-gradient(135deg, #f5f3ff, #fff)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <span style={{ fontSize: 28 }}>🎬</span>
+        <span style={{ fontSize: 28 }}>&#127916;</span>
         <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--dark)' }}>¿Necesitas un tutorial?</div>
         <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>Solicítanos un videotutorial personalizado y nuestro equipo lo creará para ti.</div>
         {!showForm && !sent && (
@@ -50,7 +50,7 @@ export function HelpSection() {
         )}
         {sent && (
           <div style={{ fontSize: 13, color: '#3b6d11', background: '#eaf3de', padding: '8px 12px', borderRadius: 8 }}>
-            ¡Solicitud enviada! 🎉
+            &#161;Solicitud enviada! &#127881;
             <button className="help-again-btn" onClick={resetForm} style={{ marginLeft: 8 }}>Solicitar otro</button>
           </div>
         )}
@@ -70,7 +70,7 @@ export function HelpSection() {
       </div>
 
       <div style={{ padding: '20px 24px', borderRadius: 14, border: '0.5px solid var(--border)', background: 'linear-gradient(135deg, #eff8ff, #fff)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <span style={{ fontSize: 28 }}>📅</span>
+      <span style={{ fontSize: 28 }}>&#128197;</span>
         <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--dark)' }}>¿Prefieres hablar con alguien?</div>
         <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>Agenda una videollamada con uno de nuestros especialistas y te ayudamos en tiempo real.</div>
         
