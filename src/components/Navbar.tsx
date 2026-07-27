@@ -32,6 +32,7 @@ export function Navbar() {
     Chile: '🇨🇱',
     México: '🇲🇽',
     Colombia: '🇨🇴',
+    Argentina: '🇦🇷',
   }
 
   return (
