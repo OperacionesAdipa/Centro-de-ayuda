@@ -369,7 +369,9 @@ ${screenshotsText}
 INSTRUCCIONES:
 - Responde únicamente la pregunta: "${article.title}"
 - NO incluyas información de los otros artículos listados
-- Escribe en español latinoamericano, tono amigable y claro
+- Escribe en español latinoamericano neutro (Chile), tono amigable y claro
+- NO uses voseo ni modismos argentinos
+- Usa tuteo: "haz" en lugar de "hacé", "tienes" en lugar de "tenés", "puedes" en lugar de "podés"
 - Usa <ol> para pasos numerados, <p> para párrafos, <strong> para énfasis
 - ${screenshots.length > 0 ? 'Incluye cada imagen inmediatamente después del paso que ilustra' : needsImagesPending ? 'Indica con [IMAGEN PENDIENTE: descripción] donde debería ir una imagen' : 'No incluyas imágenes'}
 - Cuando hagas referencia al sitio usa: ${localizedUrl}
