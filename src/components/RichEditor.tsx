@@ -15,8 +15,15 @@ interface Props {
   onChange: (html: string) => void
 }
 
+interface ImageMenu {
+  src: string
+  x: number
+  y: number
+}
+
 export function RichEditor({ content, onChange }: Props) {
   const [annotatingUrl, setAnnotatingUrl] = useState<string | null>(null)
+  const [imageMenu, setImageMenu] = useState<ImageMenu | null>(null)
 
   const editor = useEditor({
     extensions: [
@@ -33,9 +40,14 @@ export function RichEditor({ content, onChange }: Props) {
     },
     editorProps: {
       attributes: { class: 'rich-editor-content' },
-      handleClickOn: (view, pos, node) => {
+      handleClickOn: (view, pos, node, nodePos, event) => {
         if (node.type.name === 'image') {
-          setAnnotatingUrl(node.attrs.src)
+          const rect = (event.target as HTMLElement).getBoundingClientRect()
+          setImageMenu({
+            src: node.attrs.src,
+            x: rect.left + rect.width / 2,
+            y: rect.top - 10,
+          })
           return true
         }
         return false
@@ -48,6 +60,16 @@ export function RichEditor({ content, onChange }: Props) {
       editor.commands.setContent(content, false)
     }
   }, [content])
+
+  useEffect(() => {
+    function handleClickOutside() {
+      setImageMenu(null)
+    }
+    if (imageMenu) {
+      setTimeout(() => document.addEventListener('click', handleClickOutside), 100)
+    }
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [imageMenu])
 
   const addImage = useCallback(() => {
     const url = window.prompt('URL de la imagen:')
@@ -73,6 +95,18 @@ export function RichEditor({ content, onChange }: Props) {
     editor.commands.setContent(newHtml, false)
     onChange(newHtml)
     setAnnotatingUrl(null)
+  }
+
+  function handleDeleteImage(src: string) {
+    if (!editor) return
+    if (!confirm('¿Eliminar esta imagen?')) return
+    const html = editor.getHTML()
+    const newHtml = html
+      .replace(new RegExp('<figure[^>]*>\\s*<img[^>]*src="' + src.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '"[^>]*>\\s*</figure>', 'g'), '')
+      .replace(new RegExp('<img[^>]*src="' + src.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '"[^>]*>', 'g'), '')
+    editor.commands.setContent(newHtml, false)
+    onChange(newHtml)
+    setImageMenu(null)
   }
 
   if (!editor) return null
@@ -120,10 +154,72 @@ export function RichEditor({ content, onChange }: Props) {
 
       <div style={{ position: 'relative' }}>
         <p style={{ fontSize: 11, color: 'var(--muted)', padding: '4px 8px', background: '#f8f8fc', borderBottom: '0.5px solid var(--border)' }}>
-          Haz clic en una imagen para anotarla con un recuadro de resaltado
+          Haz clic en una imagen para editarla o eliminarla
         </p>
         <EditorContent editor={editor} />
       </div>
+
+      {imageMenu && (
+        <div
+          style={{
+            position: 'fixed',
+            top: imageMenu.y,
+            left: imageMenu.x,
+            transform: 'translate(-50%, -100%)',
+            background: '#fff',
+            border: '0.5px solid var(--border)',
+            borderRadius: 10,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+            zIndex: 1000,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => { setAnnotatingUrl(imageMenu.src); setImageMenu(null) }}
+            style={{
+              padding: '10px 20px',
+              border: 'none',
+              background: '#fff',
+              cursor: 'pointer',
+              fontSize: 13,
+              color: 'var(--purple)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              transition: 'background 0.15s',
+              textAlign: 'left',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--lp)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
+          >
+            ✏️ Editar imagen
+          </button>
+          <div style={{ height: '0.5px', background: 'var(--border)' }} />
+          <button
+            onClick={() => handleDeleteImage(imageMenu.src)}
+            style={{
+              padding: '10px 20px',
+              border: 'none',
+              background: '#fff',
+              cursor: 'pointer',
+              fontSize: 13,
+              color: '#e24b4a',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              transition: 'background 0.15s',
+              textAlign: 'left',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#fff5f5')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
+          >
+            🗑️ Eliminar imagen
+          </button>
+        </div>
+      )}
 
       {annotatingUrl && (
         <ImageAnnotator
