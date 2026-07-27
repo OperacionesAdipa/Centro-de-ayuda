@@ -1,14 +1,13 @@
 'use client'
 
 import { useCountry } from '@/lib/useCountry'
-import { COUNTRY_EMAIL, COUNTRY_WHATSAPP, COUNTRY_HOURS } from '@/lib/countryUtils'
+import { COUNTRY_EMAIL, COUNTRY_WHATSAPP, getCountryHours } from '@/lib/countryUtils'
 
 export function ContactSection() {
   const { country } = useCountry()
-
   const email = COUNTRY_EMAIL[country] ?? COUNTRY_EMAIL['Chile']
   const whatsapp = COUNTRY_WHATSAPP[country] ?? COUNTRY_WHATSAPP['Chile']
-  const hours = COUNTRY_HOURS[country] ?? COUNTRY_HOURS['Chile']
+  const hours = getCountryHours(country)
 
   return (
     <div className="contact-section">
