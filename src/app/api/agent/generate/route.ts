@@ -111,7 +111,9 @@ ${linksText}
 INSTRUCCIONES:
 - Responde únicamente la pregunta: "${question}"
 - NO incluyas información que corresponda a las otras preguntas listadas arriba
-- Escribe en español latinoamericano, tono amigable y claro
+- Escribe en español latinoamericano neutro (Chile), tono amigable y claro
+- NO uses voseo ni modismos argentinos
+- Usa tuteo: "haz" en lugar de "hacé", "tienes" en lugar de "tenés", "puedes" en lugar de "podés"
 - Usa formato HTML con <p>, <strong>, <ul>, <li>, <ol> según corresponda
 - Si hay pasos a seguir, usa una lista numerada <ol>
 - Cuando hagas referencia a algo de la página, incluye el hipervínculo usando <a href="URL">texto</a>
