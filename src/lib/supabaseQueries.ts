@@ -39,7 +39,7 @@ export async function getArticles(sectionId?: number) {
     .from('articles')
     .select('*')
     .eq('status', 'published')
-    .order('updated_at', { ascending: false })
+    .order('position', { ascending: true })
 
   if (sectionId) {
     query = query.eq('section_id', sectionId)
