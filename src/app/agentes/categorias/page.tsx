@@ -32,12 +32,20 @@ const ICONS = [
 ]
 
 function splitIconAndName(fullName: string): { icon: string; name: string } {
-  const emojiRegex = /^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)\s*/u
-  const match = fullName.match(emojiRegex)
+  const trimmed = fullName.trim()
+  const emojiRegex = /^([\u{1F000}-\u{1FFFF}]|[\u{2600}-\u{27BF}]|[\u{2300}-\u{23FF}]|[\u{1F300}-\u{1F9FF}]|[\u{FE00}-\u{FEFF}]|\u00A9|\u00AE|[\u2000-\u3300])\s*/u
+  const match = trimmed.match(emojiRegex)
   if (match) {
-    return { icon: match[0].trim(), name: fullName.slice(match[0].length).trim() }
+    return { icon: match[0].trim(), name: trimmed.slice(match[0].length).trim() }
   }
-  return { icon: '📁', name: fullName.trim() }
+  // Intentar con el primer caracter si es emoji
+  const firstChar = [...trimmed][0]
+  const codePoint = firstChar?.codePointAt(0) ?? 0
+  if (codePoint > 127) {
+    const rest = trimmed.slice(firstChar.length).trim()
+    return { icon: firstChar, name: rest }
+  }
+  return { icon: '📁', name: trimmed }
 }
 
 export default function CategoriasPage() {
@@ -211,26 +219,26 @@ export default function CategoriasPage() {
     </button>
   )
 
-  const IconPicker = ({ selected, onSelect }: { selected: string; onSelect: (icon: string) => void }) => (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: 10, background: '#fff', border: '0.5px solid var(--border)', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', position: 'absolute', zIndex: 100, width: 260 }}>
-      {ICONS.map(icon => (
-        <button
-          key={icon}
-          onClick={() => onSelect(icon)}
-          style={{
-            fontSize: 20,
-            padding: '4px 6px',
-            borderRadius: 6,
-            border: selected === icon ? '2px solid var(--purple)' : '1px solid var(--border)',
-            background: selected === icon ? 'var(--lp)' : '#fff',
-            cursor: 'pointer',
-          }}
-        >
-          {icon}
-        </button>
-      ))}
-    </div>
-  )
+const IconPicker = ({ selected, onSelect }: { selected: string; onSelect: (icon: string) => void }) => (
+  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: 10, background: '#fff', border: '0.5px solid var(--border)', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', position: 'fixed', zIndex: 9999, width: 280, maxHeight: 200, overflowY: 'auto' }}>
+    {ICONS.map(icon => (
+      <button
+        key={icon}
+        onClick={() => onSelect(icon)}
+        style={{
+          fontSize: 20,
+          padding: '4px 6px',
+          borderRadius: 6,
+          border: selected === icon ? '2px solid var(--purple)' : '1px solid var(--border)',
+          background: selected === icon ? 'var(--lp)' : '#fff',
+          cursor: 'pointer',
+        }}
+      >
+        {icon}
+      </button>
+    ))}
+  </div>
+)
 
   if (loading) return <div className="agent-loading">Cargando...</div>
 
