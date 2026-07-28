@@ -22,11 +22,12 @@ export function AgentNav() {
     }
   }
 
-  const links = [
-    { href: '/agentes', label: '📋 Todos los artículos', exact: true },
-    { href: '/agentes/ia', label: '✨ Generar con IA' },
-    { href: '/agentes/nuevo', label: '✏️ Nuevo artículo' },
-  ]
+const links = [
+  { href: '/agentes', label: '📋 Todos los artículos', exact: true },
+  { href: '/agentes/categorias', label: '🗂️ Categorías' },
+  { href: '/agentes/ia', label: '✨ Generar con IA' },
+  { href: '/agentes/nuevo', label: '✏️ Nuevo artículo' },
+]
 
   return (
     <div style={{
