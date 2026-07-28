@@ -25,6 +25,21 @@ interface Article {
   status: string
 }
 
+const ICONS = [
+  '📋', '🎓', '💻', '🌐', '🎁', '❓', '📁', '⭐', '🔑', '👤',
+  '📚', '🎬', '🏅', '💳', '👥', '📡', '🏛️', '📝', '📅', '🤝',
+  '🆓', '📦', '💰', '🔗', '📊', '🛠️', '🎯', '💡', '🔔', '📌',
+]
+
+function splitIconAndName(fullName: string): { icon: string; name: string } {
+  const emojiRegex = /^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)\s*/u
+  const match = fullName.match(emojiRegex)
+  if (match) {
+    return { icon: match[0].trim(), name: fullName.slice(match[0].length).trim() }
+  }
+  return { icon: '📁', name: fullName.trim() }
+}
+
 export default function CategoriasPage() {
   const router = useRouter()
   const [categories, setCategories] = useState<Category[]>([])
@@ -33,8 +48,12 @@ export default function CategoriasPage() {
   const [loading, setLoading] = useState(true)
   const [editingCat, setEditingCat] = useState<number | null>(null)
   const [editingCatName, setEditingCatName] = useState('')
+  const [editingCatIcon, setEditingCatIcon] = useState('')
+  const [showCatIconPicker, setShowCatIconPicker] = useState(false)
   const [editingSec, setEditingSec] = useState<number | null>(null)
   const [editingSecName, setEditingSecName] = useState('')
+  const [editingSecIcon, setEditingSecIcon] = useState('')
+  const [showSecIconPicker, setShowSecIconPicker] = useState(false)
   const [expandedSec, setExpandedSec] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -69,12 +88,14 @@ export default function CategoriasPage() {
   async function saveCategoryName(id: number) {
     if (!editingCatName.trim()) return
     setSaving(true)
+    const fullName = editingCatIcon + ' ' + editingCatName.trim()
     await fetch(`/api/agent/categories/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: editingCatName.trim() }),
+      body: JSON.stringify({ name: fullName }),
     })
     setEditingCat(null)
+    setShowCatIconPicker(false)
     await loadData()
     setSaving(false)
   }
@@ -88,12 +109,14 @@ export default function CategoriasPage() {
   async function saveSectionName(id: number) {
     if (!editingSecName.trim()) return
     setSaving(true)
+    const fullName = editingSecIcon + ' ' + editingSecName.trim()
     await fetch(`/api/agent/sections/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: editingSecName.trim() }),
+      body: JSON.stringify({ name: fullName }),
     })
     setEditingSec(null)
+    setShowSecIconPicker(false)
     await loadData()
     setSaving(false)
   }
@@ -107,10 +130,14 @@ export default function CategoriasPage() {
   async function moveSectionUp(sec: Section, catSections: Section[]) {
     const idx = catSections.findIndex(s => s.id === sec.id)
     if (idx === 0) return
-    const prev = catSections[idx - 1]
+    await Promise.all(
+      catSections.map((s, i) =>
+        fetch(`/api/agent/sections/${s.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position: i }) })
+      )
+    )
     await Promise.all([
-      fetch(`/api/agent/sections/${sec.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position: prev.position }) }),
-      fetch(`/api/agent/sections/${prev.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position: sec.position }) }),
+      fetch(`/api/agent/sections/${catSections[idx].id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position: idx - 1 }) }),
+      fetch(`/api/agent/sections/${catSections[idx - 1].id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position: idx }) }),
     ])
     await loadData()
   }
@@ -118,51 +145,47 @@ export default function CategoriasPage() {
   async function moveSectionDown(sec: Section, catSections: Section[]) {
     const idx = catSections.findIndex(s => s.id === sec.id)
     if (idx === catSections.length - 1) return
-    const next = catSections[idx + 1]
+    await Promise.all(
+      catSections.map((s, i) =>
+        fetch(`/api/agent/sections/${s.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position: i }) })
+      )
+    )
     await Promise.all([
-      fetch(`/api/agent/sections/${sec.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position: next.position }) }),
-      fetch(`/api/agent/sections/${next.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position: sec.position }) }),
+      fetch(`/api/agent/sections/${catSections[idx].id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position: idx + 1 }) }),
+      fetch(`/api/agent/sections/${catSections[idx + 1].id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position: idx }) }),
     ])
     await loadData()
   }
 
-async function moveArticleUp(art: Article, secArticles: Article[]) {
-  const idx = secArticles.findIndex(a => a.id === art.id)
-  if (idx === 0) return
-
-  // Primero normalizar todas las posiciones
-  await Promise.all(
-    secArticles.map((a, i) =>
-      fetch(`/api/agent/articles/${a.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position: i }) })
+  async function moveArticleUp(art: Article, secArticles: Article[]) {
+    const idx = secArticles.findIndex(a => a.id === art.id)
+    if (idx === 0) return
+    await Promise.all(
+      secArticles.map((a, i) =>
+        fetch(`/api/agent/articles/${a.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position: i }) })
+      )
     )
-  )
+    await Promise.all([
+      fetch(`/api/agent/articles/${secArticles[idx].id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position: idx - 1 }) }),
+      fetch(`/api/agent/articles/${secArticles[idx - 1].id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position: idx }) }),
+    ])
+    await loadData()
+  }
 
-  // Luego intercambiar
-  await Promise.all([
-    fetch(`/api/agent/articles/${secArticles[idx].id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position: idx - 1 }) }),
-    fetch(`/api/agent/articles/${secArticles[idx - 1].id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position: idx }) }),
-  ])
-  await loadData()
-}
-
-async function moveArticleDown(art: Article, secArticles: Article[]) {
-  const idx = secArticles.findIndex(a => a.id === art.id)
-  if (idx === secArticles.length - 1) return
-
-  // Primero normalizar todas las posiciones
-  await Promise.all(
-    secArticles.map((a, i) =>
-      fetch(`/api/agent/articles/${a.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position: i }) })
+  async function moveArticleDown(art: Article, secArticles: Article[]) {
+    const idx = secArticles.findIndex(a => a.id === art.id)
+    if (idx === secArticles.length - 1) return
+    await Promise.all(
+      secArticles.map((a, i) =>
+        fetch(`/api/agent/articles/${a.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position: i }) })
+      )
     )
-  )
-
-  // Luego intercambiar
-  await Promise.all([
-    fetch(`/api/agent/articles/${secArticles[idx].id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position: idx + 1 }) }),
-    fetch(`/api/agent/articles/${secArticles[idx + 1].id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position: idx }) }),
-  ])
-  await loadData()
-}
+    await Promise.all([
+      fetch(`/api/agent/articles/${secArticles[idx].id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position: idx + 1 }) }),
+      fetch(`/api/agent/articles/${secArticles[idx + 1].id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position: idx }) }),
+    ])
+    await loadData()
+  }
 
   const arrowBtn = (onClick: () => void, label: string, disabled: boolean) => (
     <button
@@ -188,6 +211,27 @@ async function moveArticleDown(art: Article, secArticles: Article[]) {
     </button>
   )
 
+  const IconPicker = ({ selected, onSelect }: { selected: string; onSelect: (icon: string) => void }) => (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: 10, background: '#fff', border: '0.5px solid var(--border)', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', position: 'absolute', zIndex: 100, width: 260 }}>
+      {ICONS.map(icon => (
+        <button
+          key={icon}
+          onClick={() => onSelect(icon)}
+          style={{
+            fontSize: 20,
+            padding: '4px 6px',
+            borderRadius: 6,
+            border: selected === icon ? '2px solid var(--purple)' : '1px solid var(--border)',
+            background: selected === icon ? 'var(--lp)' : '#fff',
+            cursor: 'pointer',
+          }}
+        >
+          {icon}
+        </button>
+      ))}
+    </div>
+  )
+
   if (loading) return <div className="agent-loading">Cargando...</div>
 
   return (
@@ -196,29 +240,45 @@ async function moveArticleDown(art: Article, secArticles: Article[]) {
       <div className="agent-body">
         <div style={{ marginBottom: 24 }}>
           <h2 style={{ fontSize: 20, fontWeight: 600, color: 'var(--dark)', marginBottom: 4 }}>Gestionar categorías y secciones</h2>
-          <p style={{ fontSize: 13, color: 'var(--muted)' }}>Edita nombres, elimina o reordena categorías, secciones y artículos.</p>
+          <p style={{ fontSize: 13, color: 'var(--muted)' }}>Edita nombres, íconos, elimina o reordena categorías, secciones y artículos.</p>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {categories.map((cat) => {
+            const { icon: catIcon, name: catName } = splitIconAndName(cat.name)
             const catSections = sections.filter(s => s.category_id === cat.id)
 
             return (
               <div key={cat.id} style={{ border: '0.5px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
-                {/* Categoría */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', background: 'var(--lp)', borderBottom: catSections.length > 0 ? '0.5px solid var(--border)' : 'none' }}>
                   {editingCat === cat.id ? (
-                    <input
-                      className="agent-input"
-                      value={editingCatName}
-                      onChange={(e) => setEditingCatName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') saveCategoryName(cat.id)
-                        if (e.key === 'Escape') setEditingCat(null)
-                      }}
-                      autoFocus
-                      style={{ flex: 1 }}
-                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, position: 'relative' }}>
+                      <div style={{ position: 'relative' }}>
+                        <button
+                          onClick={() => setShowCatIconPicker(!showCatIconPicker)}
+                          style={{ fontSize: 22, background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 8px', cursor: 'pointer' }}
+                          title="Cambiar ícono"
+                        >
+                          {editingCatIcon}
+                        </button>
+                        {showCatIconPicker && (
+                          <div style={{ position: 'absolute', top: 40, left: 0, zIndex: 100 }}>
+                            <IconPicker selected={editingCatIcon} onSelect={(icon) => { setEditingCatIcon(icon); setShowCatIconPicker(false) }} />
+                          </div>
+                        )}
+                      </div>
+                      <input
+                        className="agent-input"
+                        value={editingCatName}
+                        onChange={(e) => setEditingCatName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveCategoryName(cat.id)
+                          if (e.key === 'Escape') { setEditingCat(null); setShowCatIconPicker(false) }
+                        }}
+                        autoFocus
+                        style={{ flex: 1 }}
+                      />
+                    </div>
                   ) : (
                     <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--dark)', flex: 1 }}>{cat.name}</span>
                   )}
@@ -228,12 +288,12 @@ async function moveArticleDown(art: Article, secArticles: Article[]) {
                         <button className="agent-nav-btn primary" onClick={() => saveCategoryName(cat.id)} disabled={saving} style={{ fontSize: 12 }}>
                           {saving ? 'Guardando...' : 'Guardar'}
                         </button>
-                        <button className="agent-nav-btn" onClick={() => setEditingCat(null)} style={{ fontSize: 12 }}>Cancelar</button>
+                        <button className="agent-nav-btn" onClick={() => { setEditingCat(null); setShowCatIconPicker(false) }} style={{ fontSize: 12 }}>Cancelar</button>
                       </>
                     ) : (
                       <>
-                        <button className="agent-action-btn" onClick={() => { setEditingCat(cat.id); setEditingCatName(cat.name) }} style={{ fontSize: 12 }}>
-                          Editar nombre
+                        <button className="agent-action-btn" onClick={() => { setEditingCat(cat.id); setEditingCatName(catName); setEditingCatIcon(catIcon); setShowCatIconPicker(false) }} style={{ fontSize: 12 }}>
+                          Editar
                         </button>
                         <button className="agent-url-remove" onClick={() => deleteCategoryConfirm(cat.id, cat.name)}>✕</button>
                       </>
@@ -241,8 +301,8 @@ async function moveArticleDown(art: Article, secArticles: Article[]) {
                   </div>
                 </div>
 
-                {/* Secciones */}
                 {catSections.map((sec, secIdx) => {
+                  const { icon: secIcon, name: secName } = splitIconAndName(sec.name)
                   const secArticles = articles.filter(a => a.section_id === sec.id)
                   const isExpanded = expandedSec === sec.id
 
@@ -250,40 +310,52 @@ async function moveArticleDown(art: Article, secArticles: Article[]) {
                     <div key={sec.id}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px 10px 32px', borderBottom: '0.5px solid var(--border)', background: isExpanded ? '#f5f3ff' : '#fff' }}>
                         {editingSec === sec.id ? (
-                          <input
-                            className="agent-input"
-                            value={editingSecName}
-                            onChange={(e) => setEditingSecName(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') saveSectionName(sec.id)
-                              if (e.key === 'Escape') setEditingSec(null)
-                            }}
-                            autoFocus
-                            style={{ flex: 1 }}
-                          />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, position: 'relative' }}>
+                            <div style={{ position: 'relative' }}>
+                              <button
+                                onClick={() => setShowSecIconPicker(!showSecIconPicker)}
+                                style={{ fontSize: 18, background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '3px 6px', cursor: 'pointer' }}
+                                title="Cambiar ícono"
+                              >
+                                {editingSecIcon}
+                              </button>
+                              {showSecIconPicker && (
+                                <div style={{ position: 'absolute', top: 36, left: 0, zIndex: 100 }}>
+                                  <IconPicker selected={editingSecIcon} onSelect={(icon) => { setEditingSecIcon(icon); setShowSecIconPicker(false) }} />
+                                </div>
+                              )}
+                            </div>
+                            <input
+                              className="agent-input"
+                              value={editingSecName}
+                              onChange={(e) => setEditingSecName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveSectionName(sec.id)
+                                if (e.key === 'Escape') { setEditingSec(null); setShowSecIconPicker(false) }
+                              }}
+                              autoFocus
+                              style={{ flex: 1 }}
+                            />
+                          </div>
                         ) : (
                           <span style={{ fontSize: 13, color: 'var(--dark)', flex: 1 }}>↳ {sec.name}</span>
                         )}
                         <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
                           {arrowBtn(() => moveSectionUp(sec, catSections), '↑', secIdx === 0)}
                           {arrowBtn(() => moveSectionDown(sec, catSections), '↓', secIdx === catSections.length - 1)}
-                          <button
-                            className="agent-action-btn"
-                            onClick={() => setExpandedSec(isExpanded ? null : sec.id)}
-                            style={{ fontSize: 11 }}
-                          >
-                            {isExpanded ? 'Ocultar artículos' : `Ver artículos (${secArticles.length})`}
+                          <button className="agent-action-btn" onClick={() => setExpandedSec(isExpanded ? null : sec.id)} style={{ fontSize: 11 }}>
+                            {isExpanded ? 'Ocultar' : `Artículos (${secArticles.length})`}
                           </button>
                           {editingSec === sec.id ? (
                             <>
                               <button className="agent-nav-btn primary" onClick={() => saveSectionName(sec.id)} disabled={saving} style={{ fontSize: 12 }}>
                                 {saving ? '...' : 'Guardar'}
                               </button>
-                              <button className="agent-nav-btn" onClick={() => setEditingSec(null)} style={{ fontSize: 12 }}>Cancelar</button>
+                              <button className="agent-nav-btn" onClick={() => { setEditingSec(null); setShowSecIconPicker(false) }} style={{ fontSize: 12 }}>Cancelar</button>
                             </>
                           ) : (
                             <>
-                              <button className="agent-action-btn" onClick={() => { setEditingSec(sec.id); setEditingSecName(sec.name) }} style={{ fontSize: 12 }}>
+                              <button className="agent-action-btn" onClick={() => { setEditingSec(sec.id); setEditingSecName(secName); setEditingSecIcon(secIcon); setShowSecIconPicker(false) }} style={{ fontSize: 12 }}>
                                 Editar
                               </button>
                               <button className="agent-url-remove" onClick={() => deleteSectionConfirm(sec.id, sec.name)}>✕</button>
@@ -292,7 +364,6 @@ async function moveArticleDown(art: Article, secArticles: Article[]) {
                         </div>
                       </div>
 
-                      {/* Artículos de la sección */}
                       {isExpanded && (
                         <div style={{ background: '#fafafa', borderBottom: '0.5px solid var(--border)' }}>
                           {secArticles.length === 0 ? (
