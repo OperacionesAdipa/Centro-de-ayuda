@@ -28,7 +28,6 @@ const links = [
   { href: '/agentes/categorias', label: '🗂️ Categorías' },
   { href: '/agentes/ia', label: '✨ Generar con IA' },
   { href: '/agentes/nuevo', label: '✏️ Nuevo artículo' },
-]ef: '/agentes/nuevo', label: '✏️ Nuevo artículo' },
 ]
 
   return (
