@@ -59,7 +59,7 @@ export function Navbar() {
               background: '#fff',
             }}
           >
-            Ir al sitio web →
+            Ir al sitio web &#8594;
           </a>
           <button className="dark-mode-btn" onClick={toggleDark} title={darkMode ? 'Modo claro' : 'Modo oscuro'} aria-label={darkMode ? 'Activar modo claro' : 'Activar modo oscuro'}>
             {darkMode ? '☀️' : '🌙'}
