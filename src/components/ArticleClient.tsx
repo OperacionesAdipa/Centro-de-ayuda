@@ -27,9 +27,10 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
   const title = replaceMexicoTerms(article.title, country)
   const whatsapp = COUNTRY_WHATSAPP[country] ?? COUNTRY_WHATSAPP['Chile']
 
-  useEffect(() => {
-    trackArticleView(String(article.id), article.title, `${article.id}-${slugify(article.title)}`)
-  }, [article.id])
+useEffect(() => {
+  trackArticleView(String(article.id), article.title, `${article.id}-${slugify(article.title)}`)
+  fetch(`/api/agent/articles/${article.id}/view`, { method: 'POST' }).catch(() => {})
+}, [article.id])
 
   return (
     <>
