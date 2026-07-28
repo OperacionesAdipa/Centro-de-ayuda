@@ -32,7 +32,7 @@ export function Navbar() {
 
   const flags: Record<string, string> = {
     Chile: '🇨🇱',
-    Mexico: '🇲🇽',
+    México: '🇲🇽',
     Colombia: '🇨🇴',
     Argentina: '🇦🇷',
   }
