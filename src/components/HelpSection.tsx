@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useCountry } from '@/lib/useCountry'
 import { COUNTRY_EMAIL } from '@/lib/countryUtils'
 
-const CALENDAR_LINK = 'https://calendar.google.com/appointments/schedules/AcZssZ133YMSZW5tSEQrDrPk6VWkycf-fQlmoSJgnEjEVleVcrTTWV0DHFBE9EVv6hI2teNPqTII-G5z'
+const CALENDAR_LINK = 'https://calendar.app.google/yFUQyQmuUEo3NVUz9'
 
 export function HelpSection() {
   const { country } = useCountry()
