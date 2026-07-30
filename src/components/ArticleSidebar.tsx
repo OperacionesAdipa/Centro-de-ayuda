@@ -3,16 +3,18 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { useCountry } from '@/lib/useCountry'
-import { slugify, CATEGORY_ICONS, filterArticlesByCountry } from '@/lib/supabaseQueries'
+import { slugify, filterArticlesByCountry } from '@/lib/supabaseQueries'
 import { replaceMexicoTerms } from '@/lib/countryUtils'
 
-const UPDATED_ICONS: Record<string, string> = {
-  'Admisión y Matrícula': '📋',
-  'Comunidad y Beneficios': '🎁',
-  'Sitio Web': '🌐',
-  'Aula Virtual': '💻',
-  'Programas y Cursos': '🎓',
-  'Preguntas frecuentes': '❓',
+function getIconFromName(fullName: string): { icon: string; name: string } {
+  const chars = [...fullName.trim()]
+  if (chars.length === 0) return { icon: '📁', name: fullName }
+  const first = chars[0]
+  const codePoint = first.codePointAt(0) ?? 0
+  if (codePoint > 127) {
+    return { icon: first, name: fullName.slice(first.length).trim() }
+  }
+  return { icon: '📁', name: fullName.trim() }
 }
 
 interface Props {
@@ -57,7 +59,6 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
   return (
     <aside className="article-sidebar">
       <div className="sidebar-title">Categorías</div>
-
       <div style={{ marginBottom: 12 }}>
         <input
           type="text"
@@ -85,6 +86,7 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
       </div>
 
       {filteredCategories.map((cat) => {
+        const { icon: catIcon, name: catDisplayName } = getIconFromName(cat.name)
         const catSections = sections.filter((s: any) => s.category_id === cat.id)
         const visibleSections = catSections.filter((sec: any) => {
           const secArts = articles.filter((a: any) => a.section_id === sec.id)
@@ -92,7 +94,6 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
         })
         const isCatExpanded = expandedCat === cat.id || (search.trim().length > 0)
         const isCatActive = currentCategoryId === cat.id
-        const icon = UPDATED_ICONS[cat.name] ?? CATEGORY_ICONS[cat.name] ?? '📁'
 
         return (
           <div key={cat.id} className="sidebar-cat">
@@ -102,8 +103,8 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
                 style={{ flex: 1 }}
                 onClick={() => setExpandedCat(isCatExpanded && !search.trim() ? null : cat.id)}
               >
-                <span className="sidebar-cat-icon">{icon}</span>
-                <span className="sidebar-cat-name">{replaceMexicoTerms(cat.name, country)}</span>
+                <span className="sidebar-cat-icon">{catIcon}</span>
+                <span className="sidebar-cat-name">{replaceMexicoTerms(catDisplayName, country)}</span>
                 <span className="sidebar-arrow">{isCatExpanded ? '▾' : '›'}</span>
               </button>
               <Link
@@ -119,13 +120,14 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
                   flexShrink: 0,
                   transition: 'all 0.15s',
                 }}
-                title={'ver ' + cat.name}
+                title={'ver ' + catDisplayName}
               >
                 👁
               </Link>
             </div>
 
             {isCatExpanded && visibleSections.map((sec: any) => {
+              const { icon: secIcon, name: secDisplayName } = getIconFromName(sec.name)
               const secArticles = filterArticlesByCountry(
                 articles.filter((a: any) => a.section_id === sec.id),
                 country
@@ -142,7 +144,7 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
                     className={`sidebar-section-btn ${isSecActive ? 'active' : ''}`}
                     onClick={() => setExpandedSection(isSecExpanded && !search.trim() ? null : sec.id)}
                   >
-                    <span>{replaceMexicoTerms(sec.name, country)}</span>
+                    <span>{secIcon} {replaceMexicoTerms(secDisplayName, country)}</span>
                     <span className="sidebar-arrow">{isSecExpanded ? '▾' : '›'}</span>
                   </button>
                   {isSecExpanded && secArticles.map((art: any) => (
