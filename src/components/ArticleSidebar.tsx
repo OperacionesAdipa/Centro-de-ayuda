@@ -12,7 +12,8 @@ function getIconFromName(fullName: string): { icon: string; name: string } {
   const first = chars[0]
   const codePoint = first.codePointAt(0) ?? 0
   if (codePoint > 127) {
-    return { icon: first, name: fullName.slice(first.length).trim() }
+    const rest = chars.slice(1).join('').trim()
+    return { icon: first, name: rest }
   }
   return { icon: '📁', name: fullName.trim() }
 }
