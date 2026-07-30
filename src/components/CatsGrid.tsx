@@ -2,16 +2,18 @@
 
 import Link from 'next/link'
 import { useCountry } from '@/lib/useCountry'
-import { slugify, CATEGORY_ICONS, filterArticlesByCountry } from '@/lib/supabaseQueries'
+import { slugify, filterArticlesByCountry } from '@/lib/supabaseQueries'
 import { replaceMexicoTerms } from '@/lib/countryUtils'
 
-const UPDATED_ICONS: Record<string, string> = {
-  'Admisión y Matrícula': '📋',
-  'Comunidad y Beneficios': '🎁',
-  'Sitio Web': '🌐',
-  'Aula Virtual': '💻',
-  'Programas y Cursos': '🎓',
-  'Preguntas frecuentes': '❓',
+function getIconFromName(fullName: string): { icon: string; name: string } {
+  const chars = [...fullName.trim()]
+  if (chars.length === 0) return { icon: '📁', name: fullName }
+  const first = chars[0]
+  const codePoint = first.codePointAt(0) ?? 0
+  if (codePoint > 127) {
+    return { icon: first, name: fullName.slice(first.length).trim() }
+  }
+  return { icon: '📁', name: fullName.trim() }
 }
 
 interface Props {
@@ -32,27 +34,21 @@ export function CatsGrid({ categories, allSections, catArticleMap }: Props) {
   return (
     <div className="cats-grid-large" style={{ marginBottom: 40 }}>
       {visibleCats.map((cat, i) => {
+        const { icon, name } = getIconFromName(cat.name)
         const catSections = allSections.filter((s: any) => s.category_id === cat.id)
         const visibleSections = catSections.filter((sec: any) => {
           const arts = filterArticlesByCountry(catArticleMap[cat.id]?.filter((a: any) => a.section_id === sec.id) ?? [], country)
           return arts.length > 0
         })
-
         return (
           <Link
             key={cat.id}
             href={`/categoria/${cat.id}-${slugify(cat.name)}`}
             className={`cat-card-large ${i % 2 === 0 ? 'purple' : 'blue'}`}
           >
-            <span className="cat-card-large-icon">
-              {UPDATED_ICONS[cat.name] ?? CATEGORY_ICONS[cat.name] ?? '📁'}
-            </span>
-            <div className="cat-card-large-name">
-              {replaceMexicoTerms(cat.name, country)}
-            </div>
-            <div className="cat-card-large-meta">
-              {visibleSections.length} secciones
-            </div>
+            <span className="cat-card-large-icon">{icon}</span>
+            <div className="cat-card-large-name">{replaceMexicoTerms(name, country)}</div>
+            <div className="cat-card-large-meta">{visibleSections.length} secciones</div>
             <span className="cat-card-arrow">→</span>
           </Link>
         )
