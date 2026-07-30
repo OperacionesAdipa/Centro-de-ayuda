@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useCountry } from '@/lib/useCountry'
-import { slugify, filterArticlesByCountry } from '@/lib/supabaseQueries'
+import { slugify } from '@/lib/supabaseQueries'
 import { replaceMexicoTerms } from '@/lib/countryUtils'
 
 interface Props {
@@ -15,7 +15,19 @@ export function FaqSection({ articles }: Props) {
   const [openId, setOpenId] = useState<number | null>(null)
 
   const faqArticles = articles
-    .filter((art) => filterArticlesByCountry([art], country).length > 0)
+    .filter((art) => {
+      const labels: string[] = art.label_names ?? []
+      const hasPaisLabel = labels.some(l => l.startsWith('pais_'))
+      if (!hasPaisLabel) return true
+      if (labels.includes('pais_todos')) return true
+      const countryMap: Record<string, string> = {
+        Chile: 'pais_chile',
+        México: 'pais_mexico',
+        Colombia: 'pais_colombia',
+        Argentina: 'pais_argentina',
+      }
+      return labels.includes(countryMap[country] ?? '')
+    })
     .slice(0, 8)
 
   if (faqArticles.length === 0) return null
