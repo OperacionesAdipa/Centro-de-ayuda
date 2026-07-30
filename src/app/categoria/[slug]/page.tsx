@@ -1,19 +1,22 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { getCategories, getSections, getArticles, slugify, CATEGORY_ICONS } from '@/lib/supabaseQueries'
+import { getCategories, getSections, getArticles, slugify } from '@/lib/supabaseQueries'
 import { CategoryArticles } from '@/components/CategoryArticles'
 import { ArticleSidebar } from '@/components/ArticleSidebar'
 import { SectionCardsGrid } from '@/components/SectionCardsGrid'
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
-const UPDATED_ICONS: Record<string, string> = {
-  'Admisión y Matrícula': '📋',
-  'Comunidad y Beneficios': '🎁',
-  'Sitio Web': '🌐',
-  'Aula Virtual': '💻',
-  'Programas y Cursos': '🎓',
-  'Preguntas frecuentes': '❓',
+function getIconFromName(fullName: string): { icon: string; name: string } {
+  const chars = [...fullName.trim()]
+  if (chars.length === 0) return { icon: '📁', name: fullName }
+  const first = chars[0]
+  const codePoint = first.codePointAt(0) ?? 0
+  if (codePoint > 127) {
+    const rest = chars.slice(1).join('').trim()
+    return { icon: first, name: rest }
+  }
+  return { icon: '📁', name: fullName.trim() }
 }
 
 export default async function CategoryPage({ params }: { params: { slug: string } }) {
@@ -28,6 +31,8 @@ export default async function CategoryPage({ params }: { params: { slug: string 
 
   const category = categories.find((c: any) => c.id === categoryId)
   if (!category) notFound()
+
+  const { icon, name } = getIconFromName(category.name)
 
   const articlesPerSection = await Promise.all(
     sections.map((s: any) => getArticles(s.id).then((arts) => ({ section: s, arts })))
@@ -52,11 +57,9 @@ export default async function CategoryPage({ params }: { params: { slug: string 
             </Link>
           </div>
           <div className="cat-page-title-row">
-            <div className="cat-page-icon">
-              {UPDATED_ICONS[category.name] ?? CATEGORY_ICONS[category.name] ?? '📁'}
-            </div>
+            <div className="cat-page-icon">{icon}</div>
             <div>
-              <div className="cat-page-name">{category.name}</div>
+              <div className="cat-page-name">{name}</div>
               {category.description && (
                 <div className="cat-page-desc">{category.description}</div>
               )}
@@ -66,7 +69,6 @@ export default async function CategoryPage({ params }: { params: { slug: string 
             </div>
           </div>
         </div>
-
         <div className="main">
           {sections.length >= 2 ? (
             <SectionCardsGrid
