@@ -1,6 +1,8 @@
 import { MetadataRoute } from 'next'
 import { getArticles, getCategories, slugify } from '@/lib/supabaseQueries'
 
+export const dynamic = 'force-dynamic'
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://centro-de-ayuda-eta.vercel.app'
 
