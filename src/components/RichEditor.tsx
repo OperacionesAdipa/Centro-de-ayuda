@@ -9,6 +9,7 @@ import TextAlign from '@tiptap/extension-text-align'
 import Placeholder from '@tiptap/extension-placeholder'
 import Youtube from '@tiptap/extension-youtube'
 import { useEffect, useCallback, useState } from 'react'
+import { IframeExtension } from './IframeExtension'
 import { ImageAnnotator } from './ImageAnnotator'
 
 interface Props {
@@ -27,15 +28,16 @@ export function RichEditor({ content, onChange }: Props) {
   const [imageMenu, setImageMenu] = useState<ImageMenu | null>(null)
 
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Underline,
-      Image.configure({ inline: false, allowBase64: true }),
-      Link.configure({ openOnClick: false, HTMLAttributes: { class: 'editor-link' } }),
-      TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      Placeholder.configure({ placeholder: 'Escribe el contenido del artículo...' }),
-      Youtube.configure({ controls: true, nocookie: true, width: 640, height: 360 }),
-    ],
+      extensions: [
+        StarterKit,
+        Underline,
+        Image.configure({ inline: false, allowBase64: true }),
+        Link.configure({ openOnClick: false, HTMLAttributes: { class: 'editor-link' } }),
+        TextAlign.configure({ types: ['heading', 'paragraph'] }),
+        Placeholder.configure({ placeholder: 'Escribe el contenido del artículo...' }),
+        Youtube.configure({ controls: true, nocookie: true, width: 640, height: 360 }),
+        IframeExtension,
+      ],
     content,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML())
