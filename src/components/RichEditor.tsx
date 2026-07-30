@@ -7,6 +7,7 @@ import Link from '@tiptap/extension-link'
 import Underline from '@tiptap/extension-underline'
 import TextAlign from '@tiptap/extension-text-align'
 import Placeholder from '@tiptap/extension-placeholder'
+import Youtube from '@tiptap/extension-youtube'
 import { useEffect, useCallback, useState } from 'react'
 import { ImageAnnotator } from './ImageAnnotator'
 
@@ -33,6 +34,7 @@ export function RichEditor({ content, onChange }: Props) {
       Link.configure({ openOnClick: false, HTMLAttributes: { class: 'editor-link' } }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Placeholder.configure({ placeholder: 'Escribe el contenido del artículo...' }),
+      Youtube.configure({ controls: true, nocookie: true, width: 640, height: 360 }),
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -75,6 +77,22 @@ export function RichEditor({ content, onChange }: Props) {
     const url = window.prompt('URL de la imagen:')
     if (url && editor) {
       editor.chain().focus().setImage({ src: url }).run()
+    }
+  }, [editor])
+
+  const addVideo = useCallback(() => {
+    const url = window.prompt('URL del video (Vimeo o YouTube):')
+    if (!url || !editor) return
+    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/)
+    if (vimeoMatch) {
+      const vimeoId = vimeoMatch[1]
+      const iframeHtml = `<div style="padding:56.25% 0 0 0;position:relative;margin:16px 0;"><iframe src="https://player.vimeo.com/video/${vimeoId}" style="position:absolute;top:0;left:0;width:100%;height:100%;" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div>`
+      const currentHtml = editor.getHTML()
+      const newHtml = currentHtml + iframeHtml
+      editor.commands.setContent(newHtml, false)
+      onChange(newHtml)
+    } else {
+      editor.chain().focus().setYoutubeVideo({ src: url }).run()
     }
   }, [editor])
 
@@ -142,6 +160,7 @@ export function RichEditor({ content, onChange }: Props) {
         <div className="toolbar-group">
           <button className={`toolbar-btn ${editor.isActive('link') ? 'active' : ''}`} onClick={setLink} title="Agregar enlace" type="button">&#128279; Link</button>
           <button className="toolbar-btn" onClick={addImage} title="Agregar imagen" type="button">&#128247; Imagen</button>
+          <button className="toolbar-btn" onClick={addVideo} title="Agregar video" type="button">&#127916; Video</button>
           <button className={`toolbar-btn ${editor.isActive('blockquote') ? 'active' : ''}`} onClick={() => editor.chain().focus().toggleBlockquote().run()} title="Cita" type="button">&#8220; Cita</button>
           <button className={`toolbar-btn ${editor.isActive('codeBlock') ? 'active' : ''}`} onClick={() => editor.chain().focus().toggleCodeBlock().run()} title="Código" type="button">&lt;/&gt;</button>
         </div>
@@ -179,19 +198,7 @@ export function RichEditor({ content, onChange }: Props) {
         >
           <button
             onClick={() => { setAnnotatingUrl(imageMenu.src); setImageMenu(null) }}
-            style={{
-              padding: '10px 20px',
-              border: 'none',
-              background: '#fff',
-              cursor: 'pointer',
-              fontSize: 13,
-              color: 'var(--purple)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              transition: 'background 0.15s',
-              textAlign: 'left',
-            }}
+            style={{ padding: '10px 20px', border: 'none', background: '#fff', cursor: 'pointer', fontSize: 13, color: 'var(--purple)', display: 'flex', alignItems: 'center', gap: 8, transition: 'background 0.15s', textAlign: 'left' }}
             onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--lp)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
           >
@@ -200,19 +207,7 @@ export function RichEditor({ content, onChange }: Props) {
           <div style={{ height: '0.5px', background: 'var(--border)' }} />
           <button
             onClick={() => handleDeleteImage(imageMenu.src)}
-            style={{
-              padding: '10px 20px',
-              border: 'none',
-              background: '#fff',
-              cursor: 'pointer',
-              fontSize: 13,
-              color: '#e24b4a',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              transition: 'background 0.15s',
-              textAlign: 'left',
-            }}
+            style={{ padding: '10px 20px', border: 'none', background: '#fff', cursor: 'pointer', fontSize: 13, color: '#e24b4a', display: 'flex', alignItems: 'center', gap: 8, transition: 'background 0.15s', textAlign: 'left' }}
             onMouseEnter={(e) => (e.currentTarget.style.background = '#fff5f5')}
             onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
           >
