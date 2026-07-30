@@ -6,40 +6,16 @@ import { slugify, filterArticlesByCountry } from '@/lib/supabaseQueries'
 import { replaceMexicoTerms } from '@/lib/countryUtils'
 import Link from 'next/link'
 
-const SECTION_ICONS: Record<string, string> = {
-  'Cursos Síncronos': '🎥',
-  'Cursos Asíncronos': '📚',
-  'Diplomados y Postítulos': '🎓',
-  'Especializaciones': '⭐',
-  'Seminarios': '📡',
-  'Sesiones Magistrales': '🏛️',
-  'Acreditaciones Internacionales': '🏅',
-  'Inscripciones': '📋',
-  'Formas de pago': '💳',
-  'Beneficios': '🎁',
-  'Comunidad': '👥',
-  'Mi perfil': '👤',
-  'Accesos': '🔑',
-  'Preguntas frecuentes': '❓',
-  'Preguntas Frecuentes': '❓',
-  'Cursos Síncronos - En vivo': '🎥',
-  'Certificados de Seminarios': '🏅',
-  'Evaluación y certificación': '📝',
-  'Calendarización y Programas': '📅',
-  'Clases en vivo': '💻',
-  'ADIPARTNERS': '🤝',
-  'Adipartners': '🤝',
-  'Comunidad ADIPA': '👥',
-  'Recursos Gratuitos': '🆓',
-  'Funcionalidad del Aula': '💻',
-  'Recursos desde el Aula': '📚',
-  'Accesos al Aula Virtual': '🔑',
-  'Programas': '🎓',
-  'Certificados': '🏅',
-  'Preguntas frecuentes Ventas': '❓',
-  'Productos ADIPA': '📦',
-  'Precios programas': '💰',
-  'Inscripciones y Formas de pago': '💳',
+function getIconFromName(fullName: string): { icon: string; name: string } {
+  const chars = [...fullName.trim()]
+  if (chars.length === 0) return { icon: '📂', name: fullName }
+  const first = chars[0]
+  const codePoint = first.codePointAt(0) ?? 0
+  if (codePoint > 127) {
+    const rest = chars.slice(1).join('').trim()
+    return { icon: first, name: rest }
+  }
+  return { icon: '📂', name: fullName.trim() }
 }
 
 interface Props {
@@ -66,7 +42,7 @@ export function SectionCardsGrid({ sections, articlesPerSection }: Props) {
         const entry = articlesPerSection.find((a) => a.section.id === sec.id)
         const arts = filterArticlesByCountry(entry?.arts ?? [], country)
         const isActive = activeSection === sec.id
-        const icon = SECTION_ICONS[sec.name] ?? '📂'
+        const { icon, name } = getIconFromName(sec.name)
 
         return (
           <div key={sec.id} className="section-accordion-item">
@@ -78,7 +54,7 @@ export function SectionCardsGrid({ sections, articlesPerSection }: Props) {
               <span className="section-card-large-icon">{icon}</span>
               <div style={{ flex: 1 }}>
                 <div className="section-card-large-name">
-                  {replaceMexicoTerms(sec.name, country)}
+                  {replaceMexicoTerms(name, country)}
                 </div>
                 <div className="section-card-large-meta">{arts.length} artículos</div>
               </div>
