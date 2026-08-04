@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useEffect, useCallback } from 'react'
+import { useRef, useState, useEffect } from 'react'
 
 interface Rect {
   x: number
@@ -46,7 +46,7 @@ export function ImageAnnotator({ imageUrl, onSave, onClose }: Props) {
 
   useEffect(() => {
     setRect(null)
-    redraw(null)
+    if (img) redraw(null)
   }, [mode])
 
   function getPos(e: React.MouseEvent<HTMLCanvasElement>) {
@@ -75,14 +75,14 @@ export function ImageAnnotator({ imageUrl, onSave, onClose }: Props) {
         ctx.lineWidth = 4
         ctx.setLineDash([])
         ctx.strokeRect(r.x, r.y, r.w, r.h)
-        ctx.fillStyle = color === '#704EFD' ? 'rgba(112,78,253,0.1)' :
+        ctx.fillStyle =
+          color === '#704EFD' ? 'rgba(112,78,253,0.1)' :
           color === '#ef4444' ? 'rgba(239,68,68,0.1)' :
           color === '#f97316' ? 'rgba(249,115,22,0.1)' :
           color === '#22c55e' ? 'rgba(34,197,94,0.1)' :
           color === '#0ea5e9' ? 'rgba(14,165,233,0.1)' : 'rgba(0,0,0,0.1)'
         ctx.fillRect(r.x, r.y, r.w, r.h)
       } else if (mode === 'recortar') {
-        // Oscurecer área fuera del recorte
         ctx.fillStyle = 'rgba(0,0,0,0.5)'
         ctx.fillRect(0, 0, canvas.width, canvas.height)
         ctx.clearRect(r.x, r.y, r.w, r.h)
@@ -132,47 +132,39 @@ export function ImageAnnotator({ imageUrl, onSave, onClose }: Props) {
 
   function clearRect() {
     setRect(null)
-    redraw(null)
     setScale(100)
+    redraw(null)
   }
 
   async function save() {
-    const canvas = canvasRef.current
-    if (!canvas || !img) return
+    if (!img) return
     setSaving(true)
 
-    let outputCanvas = canvas
+    let outputCanvas: HTMLCanvasElement
 
     if (mode === 'recortar' && rect && rect.w > 0 && rect.h > 0) {
-      const cropCanvas = document.createElement('canvas')
-      cropCanvas.width = rect.w
-      cropCanvas.height = rect.h
-      const cropCtx = cropCanvas.getContext('2d')
-      if (cropCtx) {
-        cropCtx.drawImage(img, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h)
-        outputCanvas = cropCanvas
-      }
+      outputCanvas = document.createElement('canvas')
+      outputCanvas.width = Math.round(rect.w)
+      outputCanvas.height = Math.round(rect.h)
+      const ctx = outputCanvas.getContext('2d')
+      if (ctx) ctx.drawImage(img, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h)
     } else if (mode === 'redimensionar') {
       const newW = Math.round(img.width * scale / 100)
       const newH = Math.round(img.height * scale / 100)
-      const resizeCanvas = document.createElement('canvas')
-      resizeCanvas.width = newW
-      resizeCanvas.height = newH
-      const resizeCtx = resizeCanvas.getContext('2d')
-      if (resizeCtx) {
-        resizeCtx.drawImage(img, 0, 0, newW, newH)
-        outputCanvas = resizeCanvas
-      }
+      outputCanvas = document.createElement('canvas')
+      outputCanvas.width = newW
+      outputCanvas.height = newH
+      const ctx = outputCanvas.getContext('2d')
+      if (ctx) ctx.drawImage(img, 0, 0, newW, newH)
+    } else {
+      outputCanvas = canvasRef.current!
     }
 
     outputCanvas.toBlob(async (blob) => {
       if (!blob) { setSaving(false); return }
       const formData = new FormData()
       formData.append('file', blob, 'edited-' + Date.now() + '.jpg')
-      const res = await fetch('/api/agent/upload-image', {
-        method: 'POST',
-        body: formData,
-      })
+      const res = await fetch('/api/agent/upload-image', { method: 'POST', body: formData })
       const data = await res.json()
       if (res.ok && data.url) onSave(data.url)
       setSaving(false)
@@ -183,13 +175,13 @@ export function ImageAnnotator({ imageUrl, onSave, onClose }: Props) {
 
   const canSave = mode === 'anotar' ? !!rect :
     mode === 'recortar' ? (!!rect && rect.w > 0 && rect.h > 0) :
-    scale !== 100
+    true
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 2000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div style={{ background: '#fff', borderRadius: 12, overflow: 'hidden', maxWidth: '90vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
 
-        {/* Tabs de modo */}
+        {/* Tabs */}
         <div style={{ display: 'flex', borderBottom: '0.5px solid var(--border)' }}>
           {([
             { key: 'anotar', label: '✏️ Anotar' },
@@ -218,7 +210,7 @@ export function ImageAnnotator({ imageUrl, onSave, onClose }: Props) {
           <button className="agent-url-remove" onClick={onClose} style={{ fontSize: 18, margin: '8px 12px' }}>✕</button>
         </div>
 
-        {/* Toolbar según modo */}
+        {/* Toolbar */}
         <div style={{ padding: '10px 16px', borderBottom: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: '#f8f8fc' }}>
           {mode === 'anotar' && (
             <>
@@ -235,7 +227,7 @@ export function ImageAnnotator({ imageUrl, onSave, onClose }: Props) {
               <button className="agent-action-btn" onClick={clearRect}>Limpiar</button>
             </>
           )}
-          {mode === 'redimensionar' && (
+          {mode === 'redimensionar' && img && (
             <>
               <span style={{ fontSize: 12, color: 'var(--muted)' }}>Tamaño:</span>
               <input
@@ -247,11 +239,9 @@ export function ImageAnnotator({ imageUrl, onSave, onClose }: Props) {
                 style={{ width: 200 }}
               />
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--purple)', minWidth: 40 }}>{scale}%</span>
-              {img && (
-                <span style={{ fontSize: 11, color: 'var(--muted)' }}>
-                  {Math.round(img.width * scale / 100)} × {Math.round(img.height * scale / 100)} px
-                </span>
-              )}
+              <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                {Math.round(img.width * scale / 100)} × {Math.round(img.height * scale / 100)} px
+              </span>
               <button className="agent-action-btn" onClick={() => setScale(100)}>Resetear</button>
             </>
           )}
@@ -260,7 +250,7 @@ export function ImageAnnotator({ imageUrl, onSave, onClose }: Props) {
           </button>
         </div>
 
-        {/* Canvas */}
+        {/* Canvas / Preview */}
         <div style={{ overflow: 'auto', padding: 16 }}>
           {mode === 'redimensionar' ? (
             <div style={{ textAlign: 'center' }}>
