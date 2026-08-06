@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 
@@ -9,8 +9,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-const ALLOWED_DOMAINS = ['adipa.cl', 'adipa.mx', 'adipa.co', 'adipa.ar']
-
 export default function AccesoPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -18,6 +16,13 @@ export default function AccesoPage() {
   const [loading, setLoading] = useState(false)
   const [loadingGoogle, setLoadingGoogle] = useState(false)
   const router = useRouter()
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const err = params.get('error')
+    if (err === 'domain_not_allowed') setError('Solo cuentas con dominio @adipa.cl pueden acceder.')
+    if (err === 'auth_failed') setError('Error al autenticar con Google.')
+  }, [])
 
   async function handleLogin() {
     setLoading(true)
@@ -64,7 +69,6 @@ export default function AccesoPage() {
         <h1 className="acceso-title">Portal de agentes</h1>
         <p className="acceso-sub">Acceso exclusivo para el equipo ADIPA</p>
 
-        {/* Login con Google */}
         <button
           onClick={handleGoogleLogin}
           disabled={loadingGoogle}
