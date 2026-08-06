@@ -16,8 +16,35 @@ export default function GoogleCallbackPage() {
 
   useEffect(() => {
     async function handleCallback() {
-      const { data, error } = await supabase.auth.getSession()
+      // Leer el code del query param
+      const params = new URLSearchParams(window.location.search)
+      const code = params.get('code')
 
+      if (code) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+
+        if (error || !data.session) {
+          router.push('/acceso?error=auth_failed')
+          return
+        }
+
+        const email = data.session.user.email ?? ''
+        const domain = email.split('@')[1] ?? ''
+
+        if (!ALLOWED_DOMAINS.includes(domain)) {
+          await supabase.auth.signOut()
+          router.push('/acceso?error=domain_not_allowed')
+          return
+        }
+
+        const token = btoa(JSON.stringify({ email, ts: Date.now() }))
+        localStorage.setItem('agent_token', token)
+        router.push('/agentes')
+        return
+      }
+
+      // Si no hay code, intentar con sesión existente
+      const { data, error } = await supabase.auth.getSession()
       if (error || !data.session) {
         router.push('/acceso?error=auth_failed')
         return
