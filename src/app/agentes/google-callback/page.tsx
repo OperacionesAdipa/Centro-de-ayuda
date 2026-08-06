@@ -32,8 +32,21 @@ export default function GoogleCallbackPage() {
         return
       }
 
-      const token = btoa(JSON.stringify({ email, ts: Date.now() }))
-      localStorage.setItem('agent_token', token)
+      // Crear sesión en el sistema existente
+      const res = await fetch('/api/agent/login-google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+
+      const loginData = await res.json()
+
+      if (!res.ok || !loginData.token) {
+        router.push('/acceso?error=auth_failed')
+        return
+      }
+
+      localStorage.setItem('agent_token', loginData.token)
       router.push('/agentes')
     }
 
