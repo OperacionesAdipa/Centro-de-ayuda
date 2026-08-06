@@ -50,7 +50,7 @@ export default function AccesoPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/api/agent/google-callback`,
+        redirectTo: `${window.location.origin}/agentes/google-callback`,
         queryParams: {
           hd: 'adipa.cl',
         },
