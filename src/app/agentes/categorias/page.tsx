@@ -66,15 +66,23 @@ export default function CategoriasPage() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    const token = localStorage.getItem('agent_token')
+    const localToken = localStorage.getItem('agent_token')
+    const cookieToken = document.cookie.split(';').find(c => c.trim().startsWith('agent_google_token='))?.split('=')?.[1]
+    const token = localToken || cookieToken
+
     if (!token) { router.push('/acceso'); return }
+
+    if (cookieToken && !localToken) {
+      localStorage.setItem('agent_token', cookieToken)
+    }
+
     fetch('/api/agent/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token }),
-    }).then(r => {
+    }).then((r) => {
       if (!r.ok) router.push('/acceso')
-      else loadData()
+      else setLoading(false)
     })
   }, [])
 
