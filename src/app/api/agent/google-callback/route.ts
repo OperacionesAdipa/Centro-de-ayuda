@@ -17,6 +17,9 @@ export async function GET(req: NextRequest) {
   )
 
   const { data, error: sessionError } = await supabase.auth.exchangeCodeForSession(code)
+  
+  console.log('Session error:', JSON.stringify(sessionError))
+  console.log('User email:', data?.user?.email)
 
   if (sessionError || !data.user) {
     return NextResponse.redirect(new URL('/acceso?error=auth_failed', req.url))
@@ -29,13 +32,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL('/acceso?error=domain_not_allowed', req.url))
   }
 
-  // Generar token compatible con el sistema actual
   const token = Buffer.from(JSON.stringify({ email, ts: Date.now() })).toString('base64')
 
   const redirectUrl = new URL('/agentes', req.url)
   const res = NextResponse.redirect(redirectUrl)
 
-  // Guardar token en cookie accesible desde el cliente
   res.cookies.set('agent_google_token', token, {
     httpOnly: false,
     maxAge: 60 * 60 * 24 * 7,
