@@ -16,43 +16,27 @@ export default function GoogleCallbackPage() {
 
   useEffect(() => {
     async function handleCallback() {
-      const params = new URLSearchParams(window.location.search)
-      const code = params.get('code')
-      console.log('Code found:', code ? 'yes' : 'no')
-      console.log('Full URL:', window.location.href)
-  
-      if (code) {
-        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-        console.log('Exchange error:', JSON.stringify(error))
-        console.log('Session:', data?.session?.user?.email)
-  
-        if (error || !data.session) {
-          router.push('/acceso?error=auth_failed')
-          return
-        }
-  
-        const email = data.session.user.email ?? ''
-        const domain = email.split('@')[1] ?? ''
-  
-        if (!ALLOWED_DOMAINS.includes(domain)) {
-          await supabase.auth.signOut()
-          router.push('/acceso?error=domain_not_allowed')
-          return
-        }
-  
-        const token = btoa(JSON.stringify({ email, ts: Date.now() }))
-        localStorage.setItem('agent_token', token)
-        router.push('/agentes')
+      const { data, error } = await supabase.auth.getSession()
+
+      if (error || !data.session) {
+        router.push('/acceso?error=auth_failed')
         return
       }
-  
-      console.log('No code found, checking session...')
-      const { data, error } = await supabase.auth.getSession()
-      console.log('Session error:', JSON.stringify(error))
-      console.log('Session user:', data?.session?.user?.email)
-      router.push('/acceso?error=auth_failed')
+
+      const email = data.session.user.email ?? ''
+      const domain = email.split('@')[1] ?? ''
+
+      if (!ALLOWED_DOMAINS.includes(domain)) {
+        await supabase.auth.signOut()
+        router.push('/acceso?error=domain_not_allowed')
+        return
+      }
+
+      const token = btoa(JSON.stringify({ email, ts: Date.now() }))
+      localStorage.setItem('agent_token', token)
+      router.push('/agentes')
     }
-  
+
     handleCallback()
   }, [])
 
