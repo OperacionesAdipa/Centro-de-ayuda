@@ -40,18 +40,26 @@ export default function AgentesPage() {
   const [bulkProcessing, setBulkProcessing] = useState(false)
   const [showBulkPanel, setShowBulkPanel] = useState(false)
 
-  useEffect(() => {
-    const token = localStorage.getItem('agent_token')
-    if (!token) { router.push('/acceso'); return }
-    fetch('/api/agent/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token }),
-    }).then((r) => {
-      if (!r.ok) router.push('/acceso')
-      else loadData()
-    })
-  }, [])
+useEffect(() => {
+  const localToken = localStorage.getItem('agent_token')
+  const cookieToken = document.cookie.split(';').find(c => c.trim().startsWith('agent_google_token='))?.split('=')?.[1]
+  const token = localToken || cookieToken
+
+  if (!token) { router.push('/acceso'); return }
+
+  if (cookieToken && !localToken) {
+    localStorage.setItem('agent_token', cookieToken)
+  }
+
+  fetch('/api/agent/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  }).then((r) => {
+    if (!r.ok) router.push('/acceso')
+    else loadData()
+  })
+}, [])
 
   async function loadData() {
     const [artsRes, catRes, secRes] = await Promise.all([
