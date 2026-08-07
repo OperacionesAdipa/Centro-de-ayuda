@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
-const SUPPORTED_LANGUAGES = ['en'] // Agregar 'it', 'pt', etc. en el futuro
+const SUPPORTED_LANGUAGES = ['en']
+
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec))
+    .replace(/&nbsp;/g, ' ')
+}
 
 async function translateText(text: string, targetLang: string): Promise<string> {
   const res = await fetch(
@@ -18,7 +29,8 @@ async function translateText(text: string, targetLang: string): Promise<string> 
     }
   )
   const data = await res.json()
-  return data?.data?.translations?.[0]?.translatedText ?? text
+  const translated = data?.data?.translations?.[0]?.translatedText ?? text
+  return translated
 }
 
 export async function POST(req: NextRequest) {
@@ -29,7 +41,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Idioma no soportado' }, { status: 400 })
     }
 
-    // Buscar el artículo
     const { data: article, error } = await supabaseAdmin
       .from('articles')
       .select('id, title, body, translations_cache')
@@ -40,27 +51,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Artículo no encontrado' }, { status: 404 })
     }
 
-    // Verificar si ya existe la traducción en cache
     const cache = article.translations_cache ?? {}
     if (cache[lang]) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         title: cache[lang].title,
         body: cache[lang].body,
-        cached: true 
+        cached: true,
       })
     }
 
-    // Traducir título y body
     const [translatedTitle, translatedBody] = await Promise.all([
       translateText(article.title, lang),
       translateText(article.body, lang),
     ])
 
-    // Guardar en cache
+    // Decodificar entidades solo en el título
+    const cleanTitle = decodeHtmlEntities(translatedTitle)
+
     const newCache = {
       ...cache,
       [lang]: {
-        title: translatedTitle,
+        title: cleanTitle,
         body: translatedBody,
         translated_at: new Date().toISOString(),
       }
@@ -72,7 +83,7 @@ export async function POST(req: NextRequest) {
       .eq('id', article_id)
 
     return NextResponse.json({
-      title: translatedTitle,
+      title: cleanTitle,
       body: translatedBody,
       cached: false,
     })
