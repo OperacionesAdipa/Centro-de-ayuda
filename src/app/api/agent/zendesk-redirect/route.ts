@@ -19,9 +19,13 @@ export async function POST(req: NextRequest) {
       }),
     })
 
-    const data = await res.json()
-    return NextResponse.json({ ok: res.ok, data, status: res.status })
+    const text = await res.text()
+    console.log('Zendesk status:', res.status)
+    console.log('Zendesk response:', text)
+
+    return NextResponse.json({ ok: res.ok, status: res.status, body: text })
   } catch (e: any) {
+    console.log('Error:', e.message)
     return NextResponse.json({ error: e.message }, { status: 500 })
   }
 }
