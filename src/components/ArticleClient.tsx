@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCountry } from '@/lib/useCountry'
 import { useLanguage } from '@/lib/useLanguage'
+import { t } from '@/lib/translations'
 import { slugify, extractTagsFromBody, fixMediaUrls } from '@/lib/supabaseQueries'
 import { replaceAdipaLinks, replaceMexicoTerms, COUNTRY_WHATSAPP } from '@/lib/countryUtils'
 import { trackArticleView } from './RecentlyViewed'
@@ -43,7 +44,6 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
       setTranslatedBody(null)
       return
     }
-
     setTranslating(true)
     fetch('/api/translate', {
       method: 'POST',
@@ -61,31 +61,32 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
 
   const displayTitle = translatedTitle ?? title
   const displayBody = translatedBody ?? body
+  const T = (key: Parameters<typeof t>[1]) => t(lang as any, key)
 
   return (
     <>
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <button onClick={() => router.back()} className="back-btn-top">&#8592; Volver atrás</button>
-        <Link href="/" className="back-btn-top back-btn-solid">&#8592; Volver al inicio</Link>
+        <button onClick={() => router.back()} className="back-btn-top">{T('backToTop')}</button>
+        <Link href="/" className="back-btn-top back-btn-solid">{T('backToHome')}</Link>
       </div>
 
-      <div className="article-country-badge">&#128205; {country}</div>
+      <div className="article-country-badge">📍 {country}</div>
 
       <h1>{translating ? title : displayTitle}</h1>
 
       {translating && (
         <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: 'var(--purple)', animation: 'pulse 1s infinite' }} />
-          Traduciendo...
+          <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: 'var(--purple)' }} />
+          {T('translating')}
         </div>
       )}
 
       <div className="article-meta">
-        <span>&#128336; Actualizado {updatedDate}</span>
+        <span>🕐 {T('updatedAt')} {updatedDate}</span>
         {(article.view_count ?? 0) > 0 && (
-          <span>&#128065; {article.view_count.toLocaleString()} vistas</span>
+          <span>👁 {article.view_count.toLocaleString()} {T('views')}</span>
         )}
-        {categoryName && <span>&#127991; {replaceMexicoTerms(categoryName, country)}</span>}
+        {categoryName && <span>🏷️ {replaceMexicoTerms(categoryName, country)}</span>}
       </div>
 
       <div className="article-body" dangerouslySetInnerHTML={{ __html: translating ? body : displayBody }} />
@@ -93,20 +94,20 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
       <div className="article-divider" />
 
       <div className="helpful-box">
-        <span>&#191;Te fue útil este artículo?</span>
+        <span>{T('helpfulQuestion')}</span>
         <div className="helpful-btns">
           {helpful === null ? (
             <>
               <button className="helpful-btn" onClick={() => setHelpful(true)}>
-                &#128077; Sí, me ayudó
+                {T('helpfulYes')}
               </button>
               <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="helpful-btn">
-                Necesito más ayuda
+                {T('needMoreHelp')}
               </a>
             </>
           ) : (
             <span style={{ fontSize: 14, color: '#704EFD', fontWeight: 500 }}>
-              &#161;Gracias por tu feedback! &#127881;
+              {T('thanksFeedback')}
             </span>
           )}
         </div>
@@ -121,15 +122,15 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
       {relatedArticles.length > 0 && (
         <div style={{ marginTop: 32 }}>
           <div className="section-title" style={{ marginBottom: 12 }}>
-            <span className="section-title-icon">&#10024;</span>
-            Artículos relacionados
+            <span className="section-title-icon">✨</span>
+            {T('relatedArticles')}
           </div>
           <div className="article-list">
             {relatedArticles.map((rel) => (
               <Link key={rel.id} href={`/articulo/${rel.id}-${slugify(rel.title)}`} className="article-list-item">
-                <div className="article-list-icon">&#128196;</div>
+                <div className="article-list-icon">📄</div>
                 <div className="article-list-title">{replaceMexicoTerms(rel.title, country)}</div>
-                <span className="article-list-arrow">&#8250;</span>
+                <span className="article-list-arrow">›</span>
               </Link>
             ))}
           </div>
@@ -139,7 +140,7 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
       {categorySlug && (
         <div style={{ marginTop: 24, textAlign: 'center' }}>
           <Link href={`/categoria/${categorySlug}`} style={{ fontSize: 13, color: '#704EFD' }}>
-            &#8592; Volver a {replaceMexicoTerms(categoryName ?? '', country)}
+            {T('backToCategory')} {replaceMexicoTerms(categoryName ?? '', country)}
           </Link>
         </div>
       )}
