@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCountry } from '@/lib/useCountry'
+import { useLanguage } from '@/lib/useLanguage'
 import { slugify, extractTagsFromBody, fixMediaUrls } from '@/lib/supabaseQueries'
 import { replaceAdipaLinks, replaceMexicoTerms, COUNTRY_WHATSAPP } from '@/lib/countryUtils'
 import { trackArticleView } from './RecentlyViewed'
@@ -19,7 +20,11 @@ interface Props {
 
 export function ArticleClient({ article, updatedDate, categoryName, categorySlug, relatedArticles }: Props) {
   const { country } = useCountry()
+  const { lang } = useLanguage()
   const [helpful, setHelpful] = useState<null | boolean>(null)
+  const [translatedTitle, setTranslatedTitle] = useState<string | null>(null)
+  const [translatedBody, setTranslatedBody] = useState<string | null>(null)
+  const [translating, setTranslating] = useState(false)
   const router = useRouter()
 
   const { cleanBody } = extractTagsFromBody(article.body ?? '')
@@ -27,10 +32,35 @@ export function ArticleClient({ article, updatedDate, categoryName, categorySlug
   const title = replaceMexicoTerms(article.title, country)
   const whatsapp = COUNTRY_WHATSAPP[country] ?? COUNTRY_WHATSAPP['Chile']
 
-useEffect(() => {
-  trackArticleView(String(article.id), article.title, `${article.id}-${slugify(article.title)}`)
-  fetch(`/api/agent/articles/${article.id}/view`, { method: 'POST' }).catch(() => {})
-}, [article.id])
+  useEffect(() => {
+    trackArticleView(String(article.id), article.title, `${article.id}-${slugify(article.title)}`)
+    fetch(`/api/agent/articles/${article.id}/view`, { method: 'POST' }).catch(() => {})
+  }, [article.id])
+
+  useEffect(() => {
+    if (lang === 'es') {
+      setTranslatedTitle(null)
+      setTranslatedBody(null)
+      return
+    }
+
+    setTranslating(true)
+    fetch('/api/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ article_id: article.id, lang }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.title) setTranslatedTitle(data.title)
+        if (data.body) setTranslatedBody(data.body)
+        setTranslating(false)
+      })
+      .catch(() => setTranslating(false))
+  }, [lang, article.id])
+
+  const displayTitle = translatedTitle ?? title
+  const displayBody = translatedBody ?? body
 
   return (
     <>
@@ -41,7 +71,14 @@ useEffect(() => {
 
       <div className="article-country-badge">&#128205; {country}</div>
 
-      <h1>{title}</h1>
+      <h1>{translating ? title : displayTitle}</h1>
+
+      {translating && (
+        <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: 'var(--purple)', animation: 'pulse 1s infinite' }} />
+          Traduciendo...
+        </div>
+      )}
 
       <div className="article-meta">
         <span>&#128336; Actualizado {updatedDate}</span>
@@ -51,7 +88,7 @@ useEffect(() => {
         {categoryName && <span>&#127991; {replaceMexicoTerms(categoryName, country)}</span>}
       </div>
 
-      <div className="article-body" dangerouslySetInnerHTML={{ __html: body }} />
+      <div className="article-body" dangerouslySetInnerHTML={{ __html: translating ? body : displayBody }} />
 
       <div className="article-divider" />
 
@@ -75,8 +112,8 @@ useEffect(() => {
         </div>
       </div>
 
-      <div style={{ height: 1, background: 'rgba(112,78,253,0.2)', margin: '32px 0' }} />  
-      
+      <div style={{ height: 1, background: 'rgba(112,78,253,0.2)', margin: '32px 0' }} />
+
       <div style={{ marginTop: 24 }}>
         <HelpSection />
       </div>
