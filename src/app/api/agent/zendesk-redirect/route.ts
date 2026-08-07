@@ -6,20 +6,26 @@ export async function POST(req: NextRequest) {
 
     const auth = Buffer.from(`${process.env.ZENDESK_EMAIL}/token:${process.env.ZENDESK_TOKEN}`).toString('base64')
 
-    // Primero probamos GET para ver si tenemos acceso al endpoint
-    const getRes = await fetch('https://adipa.zendesk.com/api/v2/guide/redirect_rules', {
-      method: 'GET',
+    const res = await fetch('https://adipa.zendesk.com/api/v2/guide/redirect_rules', {
+      method: 'POST',
       headers: {
         'Authorization': `Basic ${auth}`,
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        redirect_rule: {
+          redirect_from: `/hc/es-419/articles/${zendesk_id}`,
+          redirect_to: `https://centro-de-ayuda-eta.vercel.app/api/redirect/${zendesk_id}`,
+          redirect_status: 301,
+        }
+      }),
     })
 
-    const getText = await getRes.text()
-    console.log('GET status:', getRes.status)
-    console.log('GET response:', getText.slice(0, 300))
+    const text = await res.text()
+    console.log('Status:', res.status)
+    console.log('Response:', text)
 
-    return NextResponse.json({ get_status: getRes.status, get_body: getText.slice(0, 300), zendesk_id })
+    return NextResponse.json({ status: res.status, body: text })
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 })
   }
