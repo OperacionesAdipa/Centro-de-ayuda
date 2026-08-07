@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useCountry } from '@/lib/useCountry'
+import { useLanguage } from '@/lib/useLanguage'
+import { t } from '@/lib/translations'
 import { slugify } from '@/lib/supabaseQueries'
 import { replaceMexicoTerms } from '@/lib/countryUtils'
 
@@ -12,7 +14,11 @@ interface Props {
 
 export function FaqSection({ articles }: Props) {
   const { country } = useCountry()
+  const { lang } = useLanguage()
   const [openId, setOpenId] = useState<number | null>(null)
+  const [translations, setTranslations] = useState<Record<number, { title: string; body: string }>>({})
+  const [translating, setTranslating] = useState(false)
+  const T = (key: Parameters<typeof t>[1]) => t(lang as any, key)
 
   const faqArticles = articles
     .filter((art) => {
@@ -30,12 +36,43 @@ export function FaqSection({ articles }: Props) {
     })
     .slice(0, 8)
 
+  useEffect(() => {
+    if (lang === 'es') {
+      setTranslations({})
+      return
+    }
+
+    setTranslating(true)
+    const titles = faqArticles.map(a => a.title)
+
+    fetch('/api/translate-batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texts: titles, lang }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        const newTranslations: Record<number, { title: string; body: string }> = {}
+        faqArticles.forEach((art, i) => {
+          newTranslations[art.id] = {
+            title: data.translations?.[i] ?? art.title,
+            body: art.body,
+          }
+        })
+        setTranslations(newTranslations)
+        setTranslating(false)
+      })
+      .catch(() => setTranslating(false))
+  }, [lang, articles.length])
+
   if (faqArticles.length === 0) return null
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {faqArticles.map((art) => {
         const isOpen = openId === art.id
+        const displayTitle = translations[art.id]?.title ?? replaceMexicoTerms(art.title, country)
+
         return (
           <div
             key={art.id}
@@ -67,7 +104,7 @@ export function FaqSection({ articles }: Props) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
                 <span style={{ fontSize: 18, flexShrink: 0 }}>❓</span>
                 <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--dark)', lineHeight: 1.4 }}>
-                  {replaceMexicoTerms(art.title, country)}
+                  {translating ? replaceMexicoTerms(art.title, country) : displayTitle}
                 </span>
               </div>
               <span style={{
@@ -106,7 +143,7 @@ export function FaqSection({ articles }: Props) {
                     textDecoration: 'none',
                   }}
                 >
-                  Ver artículo completo →
+                  {T('backToTop').includes('←') ? 'Ver artículo completo →' : 'View full article →'}
                 </Link>
               </div>
             )}
