@@ -6,6 +6,20 @@ const nextConfig = {
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/hc/:lang/articles/:zendesk_id*',
+        destination: '/api/redirect/:zendesk_id',
+        permanent: true,
+      },
+      {
+        source: '/hc/:lang*',
+        destination: '/',
+        permanent: true,
+      },
+    ]
+  },
   async headers() {
     return [
       {
