@@ -56,6 +56,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (body.needs_images !== undefined) updateData.needs_images = body.needs_images
     if (body.position !== undefined) updateData.position = body.position
 
+    // Invalidar cache de traducciones al actualizar título o body
+    if (body.body !== undefined || body.title !== undefined) {
+      updateData.translations_cache = {}
+    }
+
     const { data, error } = await supabaseAdmin
       .from('articles')
       .update(updateData)
