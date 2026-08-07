@@ -58,11 +58,11 @@ export function Navbar() {
       <nav className="navbar">
         <Link href="/" className="navbar-logo">
           <img src="https://adipa.cl/content/uploads/2022/10/logo-adipa.svg" alt="ADIPA" style={{ height: 32, width: 'auto' }} />
-          <span className="navbar-subtitle">Centro de ayuda</span>
+          <span className="navbar-subtitle">{lang === 'en' ? 'Help center' : 'Centro de ayuda'}</span>
         </Link>
         <div className="navbar-right">
           <a href={siteUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, padding: '5px 12px', borderRadius: 99, border: '0.5px solid var(--border)', color: 'var(--dark)', textDecoration: 'none', background: '#fff' }}>
-            Ir al sitio web
+            {lang === 'en' ? 'Go to website' : 'Ir al sitio web'}
           </a>
 
           {/* Selector de idioma */}
