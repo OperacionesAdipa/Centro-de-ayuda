@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { useCountry } from '@/lib/useCountry'
+import { useLanguage } from '@/lib/useLanguage'
+import { t } from '@/lib/translations'
 import { slugify, filterArticlesByCountry } from '@/lib/supabaseQueries'
 import { replaceMexicoTerms } from '@/lib/countryUtils'
 
@@ -29,9 +31,11 @@ interface Props {
 
 export function ArticleSidebar({ categories, sections, articles, currentCategoryId, currentSectionId, currentArticleId }: Props) {
   const { country } = useCountry()
+  const { lang } = useLanguage()
   const [expandedCat, setExpandedCat] = useState<number | null>(currentCategoryId ?? null)
   const [expandedSection, setExpandedSection] = useState<number | null>(currentSectionId ?? null)
   const [search, setSearch] = useState('')
+  const T = (key: Parameters<typeof t>[1]) => t(lang as any, key)
 
   const visibleCategories = categories.filter((cat) => {
     const catSections = sections.filter((s: any) => s.category_id === cat.id)
@@ -59,11 +63,11 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
 
   return (
     <aside className="article-sidebar">
-      <div className="sidebar-title">Categorías</div>
+      <div className="sidebar-title">{T('categories')}</div>
       <div style={{ marginBottom: 12 }}>
         <input
           type="text"
-          placeholder="Buscar..."
+          placeholder={T('searchPlaceholder')}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value)
