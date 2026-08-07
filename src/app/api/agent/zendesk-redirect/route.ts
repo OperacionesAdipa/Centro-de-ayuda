@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
       redirect_rule: {
         redirect_from: `/hc/es-419/articles/${zendesk_id}`,
         redirect_to: `https://centro-de-ayuda-eta.vercel.app/api/redirect/${zendesk_id}`,
-        redirect_status: '301',
+        redirect_status: 301,
       }
     })
 
