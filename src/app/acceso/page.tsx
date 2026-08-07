@@ -28,7 +28,6 @@ export default function AccesoPage() {
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/agentes/google-callback`,
-        queryParams: { hd: '*' },
       },
     })
     if (error) {
