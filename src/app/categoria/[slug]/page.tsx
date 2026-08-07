@@ -1,9 +1,9 @@
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { getCategories, getSections, getArticles, slugify } from '@/lib/supabaseQueries'
+import { getCategories, getSections, getArticles } from '@/lib/supabaseQueries'
 import { CategoryArticles } from '@/components/CategoryArticles'
 import { ArticleSidebar } from '@/components/ArticleSidebar'
 import { SectionCardsGrid } from '@/components/SectionCardsGrid'
+import { CategoryHeader } from '@/components/CategoryHeader'
 
 export const dynamic = 'force-dynamic'
 
@@ -50,25 +50,13 @@ export default async function CategoryPage({ params }: { params: { slug: string 
         currentCategoryId={categoryId}
       />
       <div className="article-main">
-        <div className="cat-page-header">
-          <div style={{ marginBottom: 16 }}>
-            <Link href="/" className="back-btn-top back-btn-solid">
-              Volver al inicio
-            </Link>
-          </div>
-          <div className="cat-page-title-row">
-            <div className="cat-page-icon">{icon}</div>
-            <div>
-              <div className="cat-page-name">{name}</div>
-              {category.description && (
-                <div className="cat-page-desc">{category.description}</div>
-              )}
-              <div className="cat-page-desc">
-                {sections.length} secciones · {totalArticles} artículos
-              </div>
-            </div>
-          </div>
-        </div>
+        <CategoryHeader
+          icon={icon}
+          name={name}
+          description={category.description}
+          sectionsCount={sections.length}
+          articlesCount={totalArticles}
+        />
         <div className="main">
           {sections.length >= 2 ? (
             <SectionCardsGrid
