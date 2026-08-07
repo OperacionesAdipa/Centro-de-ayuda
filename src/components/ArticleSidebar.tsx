@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useCountry } from '@/lib/useCountry'
 import { useLanguage } from '@/lib/useLanguage'
 import { t } from '@/lib/translations'
@@ -35,6 +35,9 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
   const [expandedCat, setExpandedCat] = useState<number | null>(currentCategoryId ?? null)
   const [expandedSection, setExpandedSection] = useState<number | null>(currentSectionId ?? null)
   const [search, setSearch] = useState('')
+  const [catTranslations, setCatTranslations] = useState<Record<number, string>>({})
+  const [secTranslations, setSecTranslations] = useState<Record<number, string>>({})
+  const [artTranslations, setArtTranslations] = useState<Record<number, string>>({})
   const T = (key: Parameters<typeof t>[1]) => t(lang as any, key)
 
   const visibleCategories = categories.filter((cat) => {
@@ -60,6 +63,72 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
         )
       })
     : visibleCategories
+
+  useEffect(() => {
+    if (lang === 'es') {
+      setCatTranslations({})
+      setSecTranslations({})
+      setArtTranslations({})
+      return
+    }
+
+    // Traducir categorías
+    const catNames = visibleCategories.map(c => getIconFromName(c.name).name)
+    if (catNames.length > 0) {
+      fetch('/api/translate-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texts: catNames, lang }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          const newTrans: Record<number, string> = {}
+          visibleCategories.forEach((cat, i) => {
+            newTrans[cat.id] = data.translations?.[i] ?? getIconFromName(cat.name).name
+          })
+          setCatTranslations(newTrans)
+        })
+        .catch(() => {})
+    }
+
+    // Traducir secciones
+    const secNames = sections.map(s => getIconFromName(s.name).name)
+    if (secNames.length > 0) {
+      fetch('/api/translate-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texts: secNames, lang }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          const newTrans: Record<number, string> = {}
+          sections.forEach((sec, i) => {
+            newTrans[sec.id] = data.translations?.[i] ?? getIconFromName(sec.name).name
+          })
+          setSecTranslations(newTrans)
+        })
+        .catch(() => {})
+    }
+
+    // Traducir artículos
+    const artTitles = articles.map(a => a.title)
+    if (artTitles.length > 0) {
+      fetch('/api/translate-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texts: artTitles, lang }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          const newTrans: Record<number, string> = {}
+          articles.forEach((art, i) => {
+            newTrans[art.id] = data.translations?.[i] ?? art.title
+          })
+          setArtTranslations(newTrans)
+        })
+        .catch(() => {})
+    }
+  }, [lang, categories.length, sections.length, articles.length])
 
   return (
     <aside className="article-sidebar">
@@ -99,6 +168,7 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
         })
         const isCatExpanded = expandedCat === cat.id || (search.trim().length > 0)
         const isCatActive = currentCategoryId === cat.id
+        const displayCatName = catTranslations[cat.id] ?? replaceMexicoTerms(catDisplayName, country)
 
         return (
           <div key={cat.id} className="sidebar-cat">
@@ -109,7 +179,7 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
                 onClick={() => setExpandedCat(isCatExpanded && !search.trim() ? null : cat.id)}
               >
                 <span className="sidebar-cat-icon">{catIcon}</span>
-                <span className="sidebar-cat-name">{replaceMexicoTerms(catDisplayName, country)}</span>
+                <span className="sidebar-cat-name">{displayCatName}</span>
                 <span className="sidebar-arrow">{isCatExpanded ? '▾' : '›'}</span>
               </button>
               <Link
@@ -125,7 +195,7 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
                   flexShrink: 0,
                   transition: 'all 0.15s',
                 }}
-                title={'ver ' + catDisplayName}
+                title={'ver ' + displayCatName}
               >
                 👁
               </Link>
@@ -142,6 +212,7 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
               if (search.trim() && secArticles.length === 0) return null
               const isSecExpanded = expandedSection === sec.id || search.trim().length > 0
               const isSecActive = currentSectionId === sec.id
+              const displaySecName = secTranslations[sec.id] ?? replaceMexicoTerms(secDisplayName, country)
 
               return (
                 <div key={sec.id} className="sidebar-section">
@@ -149,7 +220,7 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
                     className={`sidebar-section-btn ${isSecActive ? 'active' : ''}`}
                     onClick={() => setExpandedSection(isSecExpanded && !search.trim() ? null : sec.id)}
                   >
-                    <span>{secIcon} {replaceMexicoTerms(secDisplayName, country)}</span>
+                    <span>{secIcon} {displaySecName}</span>
                     <span className="sidebar-arrow">{isSecExpanded ? '▾' : '›'}</span>
                   </button>
                   {isSecExpanded && secArticles.map((art: any) => (
@@ -158,7 +229,7 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
                       href={`/articulo/${art.id}-${slugify(art.title)}`}
                       className={`sidebar-article-link ${currentArticleId === art.id ? 'active' : ''}`}
                     >
-                      📄 {replaceMexicoTerms(art.title, country)}
+                      📄 {artTranslations[art.id] ?? replaceMexicoTerms(art.title, country)}
                     </Link>
                   ))}
                 </div>
