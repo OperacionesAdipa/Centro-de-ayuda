@@ -65,69 +65,75 @@ export function ArticleSidebar({ categories, sections, articles, currentCategory
     : visibleCategories
 
   useEffect(() => {
-    if (lang === 'es') {
-      setCatTranslations({})
-      setSecTranslations({})
-      setArtTranslations({})
-      return
+    async function translate() {
+      if (lang === 'es') {
+        setCatTranslations({})
+        setSecTranslations({})
+        setArtTranslations({})
+        return
+      }
+
+      // Traducir categorías
+      const catNames = visibleCategories.map(c => getIconFromName(c.name).name)
+      if (catNames.length > 0) {
+        fetch('/api/translate-batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ texts: catNames, lang }),
+        })
+          .then(r => r.json())
+          .then(data => {
+            const newTrans: Record<number, string> = {}
+            visibleCategories.forEach((cat, i) => {
+              newTrans[cat.id] = data.translations?.[i] ?? getIconFromName(cat.name).name
+            })
+            setCatTranslations(newTrans)
+          })
+          .catch(() => {})
+      }
+
+      // Traducir secciones
+      const secNames = sections.map(s => getIconFromName(s.name).name)
+      if (secNames.length > 0) {
+        fetch('/api/translate-batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ texts: secNames, lang }),
+        })
+          .then(r => r.json())
+          .then(data => {
+            const newTrans: Record<number, string> = {}
+            sections.forEach((sec, i) => {
+              newTrans[sec.id] = data.translations?.[i] ?? getIconFromName(sec.name).name
+            })
+            setSecTranslations(newTrans)
+          })
+          .catch(() => {})
+      }
+
+      // Traducir artículos en chunks de 50
+      const chunkSize = 50
+      const newArtTrans: Record<number, string> = {}
+      for (let i = 0; i < articles.length; i += chunkSize) {
+        const chunk = articles.slice(i, i + chunkSize)
+        const titles = chunk.map((a: any) => a.title)
+        await fetch('/api/translate-batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ texts: titles, lang }),
+        })
+          .then(r => r.json())
+          .then(data => {
+            chunk.forEach((art: any, idx: number) => {
+              newArtTrans[art.id] = data.translations?.[idx] ?? art.title
+            })
+          })
+          .catch(() => {})
+      }
+      setArtTranslations(newArtTrans)
     }
 
-    // Traducir categorías
-    const catNames = visibleCategories.map(c => getIconFromName(c.name).name)
-    if (catNames.length > 0) {
-      fetch('/api/translate-batch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texts: catNames, lang }),
-      })
-        .then(r => r.json())
-        .then(data => {
-          const newTrans: Record<number, string> = {}
-          visibleCategories.forEach((cat, i) => {
-            newTrans[cat.id] = data.translations?.[i] ?? getIconFromName(cat.name).name
-          })
-          setCatTranslations(newTrans)
-        })
-        .catch(() => {})
-    }
-
-    // Traducir secciones
-    const secNames = sections.map(s => getIconFromName(s.name).name)
-    if (secNames.length > 0) {
-      fetch('/api/translate-batch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texts: secNames, lang }),
-      })
-        .then(r => r.json())
-        .then(data => {
-          const newTrans: Record<number, string> = {}
-          sections.forEach((sec, i) => {
-            newTrans[sec.id] = data.translations?.[i] ?? getIconFromName(sec.name).name
-          })
-          setSecTranslations(newTrans)
-        })
-        .catch(() => {})
-    }
-
-    // Traducir artículos
-    const artTitles = articles.map(a => a.title)
-    if (artTitles.length > 0) {
-      fetch('/api/translate-batch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texts: artTitles, lang }),
-      })
-        .then(r => r.json())
-        .then(data => {
-          const newTrans: Record<number, string> = {}
-          articles.forEach((art, i) => {
-            newTrans[art.id] = data.translations?.[i] ?? art.title
-          })
-          setArtTranslations(newTrans)
-        })
-        .catch(() => {})
-    }
+    translate()
   }, [lang, categories.length, sections.length, articles.length])
 
   return (
