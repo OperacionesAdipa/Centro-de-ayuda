@@ -1,11 +1,13 @@
 'use client'
 
 import { useCountry } from '@/lib/useCountry'
+import { useLanguage } from '@/lib/useLanguage'
 import { COUNTRY_DOMAIN } from '@/lib/countryUtils'
 import Link from 'next/link'
 
 export function Footer() {
   const { country } = useCountry()
+  const { lang } = useLanguage()
   const domain = COUNTRY_DOMAIN[country] ?? 'cl'
   const year = new Date().getFullYear()
 
@@ -14,12 +16,12 @@ export function Footer() {
       <a href={`https://www.adipa.${domain}`} target="_blank" rel="noopener noreferrer" className="footer-logo">
         <img src="https://adipa.cl/content/uploads/2022/10/logo-adipa.svg" alt="ADIPA" style={{ height: 28, width: 'auto', filter: 'brightness(0) invert(1)' }} />
       </a>
-      <p className="footer-copy">© {year} ADIPA. Todos los derechos reservados.</p>
+      <p className="footer-copy">© {year} ADIPA. {lang === 'en' ? 'All rights reserved.' : 'Todos los derechos reservados.'}</p>
       <a href={`https://adipa.${domain}/terminos-y-condiciones/`} target="_blank" rel="noopener noreferrer" className="footer-terms">
-        Términos y condiciones
+        {lang === 'en' ? 'Terms and conditions' : 'Términos y condiciones'}
       </a>
       <Link href="/acceso" style={{ fontSize: 10, color: 'rgba(255,255,255,0.12)', marginTop: 4, textDecoration: 'none' }}>
-        Iniciar sesión
+        {lang === 'en' ? 'Sign in' : 'Iniciar sesión'}
       </Link>
     </footer>
   )
