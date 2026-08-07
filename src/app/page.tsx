@@ -7,6 +7,8 @@ import { CatsGrid } from '@/components/CatsGrid'
 import { VideoTutorials } from '@/components/VideoTutorials'
 import { RecentlyViewed } from '@/components/RecentlyViewed'
 import { HelpSection } from '@/components/HelpSection'
+import { HomeClient } from '@/components/HomeClient'
+import { SectionTitle } from '@/components/SectionTitle'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,16 +22,12 @@ export default async function HomePage() {
   const topViewed = [...allArticles]
     .sort((a, b) => (b.view_count ?? 0) - (a.view_count ?? 0))
     .slice(0, 3)
-
   const featured = allArticles.filter((a) => a.promoted).slice(0, 3)
   const display = featured.length > 0 ? featured : topViewed
-
   const faqArticles = allArticles.filter((a: any) =>
     (a.label_names ?? []).includes('faq')
   )
-
   const sectionMap = Object.fromEntries(allSections.map((s: any) => [s.id, s]))
-
   const catArticleMap: Record<number, any[]> = {}
   for (const cat of categories) {
     const sections = allSections.filter((s: any) => s.category_id === cat.id)
@@ -39,62 +37,17 @@ export default async function HomePage() {
 
   return (
     <>
-      <CountryHero
-        totalCategories={categories.length}
-        totalArticles={allArticles.length}
-      />
+      <CountryHero totalCategories={categories.length} totalArticles={allArticles.length} />
       <div className="main">
         <RecentlyViewed />
-        <div className="section-header">
-          <h2 className="section-title">
-            <span className="section-title-icon">⊞</span>
-            Categorías
-          </h2>
-        </div>
-        <CatsGrid
-          categories={categories}
-          allSections={allSections}
-          catArticleMap={catArticleMap}
-        />
+        <SectionTitle icon="⊞" textEs="Categorías" textEn="Categories" />
+        <CatsGrid categories={categories} allSections={allSections} catArticleMap={catArticleMap} />
         <div className="section-divider" />
         <VideoTutorials articles={allArticles} />
         <div className="section-divider" />
-        <div className="section-header">
-          <h2 className="section-title">
-            <span className="section-title-icon">🔥</span>
-            Artículos más vistos
-          </h2>
-        </div>
-        <div className="articles-ranked">
-          {display.map((art: any, i: number) => {
-            const section = sectionMap[art.section_id]
-            const views = art.view_count ?? 0
-            return (
-              <Link
-                key={art.id}
-                href={`/articulo/${art.id}-${slugify(art.title)}`}
-                className="art-rank-card"
-              >
-                <span className="art-rank-num">{i + 1}</span>
-                <div className="art-rank-info">
-                  <div className="art-rank-title">{art.title}</div>
-                  <div className="art-rank-meta">
-                    {views > 0 && <>👁 {views.toLocaleString()} vistas</>}
-                    {section && <> · {section.name}</>}
-                  </div>
-                </div>
-                <span className="art-rank-arrow">›</span>
-              </Link>
-            )
-          })}
-        </div>
+        <HomeClient display={display} sectionMap={sectionMap} />
         <div className="section-divider" />
-        <div className="section-header">
-          <h2 className="section-title">
-            <span className="section-title-icon">❓</span>
-            Preguntas frecuentes
-          </h2>
-        </div>
+        <SectionTitle icon="❓" textEs="Preguntas frecuentes" textEn="Frequently asked questions" />
         <FaqSection articles={faqArticles} />
         <div className="section-divider" />
         <HelpSection />
