@@ -10,39 +10,16 @@ const supabase = createClient(
 )
 
 export default function AccesoPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
   const [loadingGoogle, setLoadingGoogle] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const err = params.get('error')
-    if (err === 'domain_not_allowed') setError('Solo cuentas con dominio @adipa.cl pueden acceder.')
+    if (err === 'domain_not_allowed') setError('Solo cuentas con dominio @adipa pueden acceder.')
     if (err === 'auth_failed') setError('Error al autenticar con Google.')
   }, [])
-
-  async function handleLogin() {
-    setLoading(true)
-    setError('')
-    const res = await fetch('/api/agent/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    })
-    const data = await res.json()
-    if (res.ok && data.token) {
-      localStorage.setItem('agent_token', data.token)
-      const redirect = localStorage.getItem('redirect_after_login')
-      localStorage.removeItem('redirect_after_login')
-      router.push(redirect ?? '/agentes')
-    } else {
-      setError('Correo o contraseña incorrectos.')
-    }
-    setLoading(false)
-  }
 
   async function handleGoogleLogin() {
     setLoadingGoogle(true)
@@ -51,9 +28,7 @@ export default function AccesoPage() {
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/agentes/google-callback`,
-        queryParams: {
-          hd: 'adipa.cl',
-        },
+        queryParams: { hd: 'adipa.cl' },
       },
     })
     if (error) {
@@ -69,6 +44,8 @@ export default function AccesoPage() {
         <h1 className="acceso-title">Portal de agentes</h1>
         <p className="acceso-sub">Acceso exclusivo para el equipo ADIPA</p>
 
+        {error && <p className="acceso-error" style={{ marginBottom: 16 }}>{error}</p>}
+
         <button
           onClick={handleGoogleLogin}
           disabled={loadingGoogle}
@@ -78,7 +55,7 @@ export default function AccesoPage() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 10,
-            padding: '11px',
+            padding: '12px',
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--border)',
             background: '#fff',
@@ -86,7 +63,6 @@ export default function AccesoPage() {
             fontSize: 14,
             fontWeight: 500,
             color: 'var(--dark)',
-            marginBottom: 16,
             transition: 'all 0.15s',
           }}
         >
@@ -98,40 +74,6 @@ export default function AccesoPage() {
           </svg>
           {loadingGoogle ? 'Redirigiendo...' : 'Iniciar sesión con Google'}
         </button>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-          <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-          <span style={{ fontSize: 12, color: 'var(--muted)' }}>o con correo y contraseña</span>
-          <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-        </div>
-
-        <div className="acceso-form">
-          <input
-            className="tutorial-input"
-            type="email"
-            placeholder="Correo electrónico"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-          />
-          <input
-            className="tutorial-input"
-            type="password"
-            placeholder="Contraseña"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-          />
-          {error && <p className="acceso-error">{error}</p>}
-          <button
-            className="help-card-btn purple"
-            onClick={handleLogin}
-            disabled={loading}
-            style={{ width: '100%', justifyContent: 'center', padding: '12px' }}
-          >
-            {loading ? 'Ingresando...' : 'Ingresar'}
-          </button>
-        </div>
       </div>
     </div>
   )
