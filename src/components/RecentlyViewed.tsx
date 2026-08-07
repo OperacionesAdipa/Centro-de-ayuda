@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/useLanguage'
 
 interface ViewedArticle {
   id: string
@@ -23,7 +24,9 @@ export function trackArticleView(id: string, title: string, slug: string) {
 }
 
 export function RecentlyViewed() {
+  const { lang } = useLanguage()
   const [articles, setArticles] = useState<ViewedArticle[]>([])
+  const [translatedTitles, setTranslatedTitles] = useState<Record<string, string>>({})
 
   useEffect(() => {
     try {
@@ -32,19 +35,41 @@ export function RecentlyViewed() {
     } catch {}
   }, [])
 
+  useEffect(() => {
+    if (lang === 'es' || articles.length === 0) {
+      setTranslatedTitles({})
+      return
+    }
+    const titles = articles.map(a => a.title)
+    fetch('/api/translate-batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texts: titles, lang }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        const newTitles: Record<string, string> = {}
+        articles.forEach((art, i) => {
+          newTitles[art.id] = data.translations?.[i] ?? art.title
+        })
+        setTranslatedTitles(newTitles)
+      })
+      .catch(() => {})
+  }, [lang, articles.length])
+
   if (articles.length === 0) return null
 
   return (
     <div className="recently-viewed">
       <div className="section-title" style={{ marginBottom: 12 }}>
         <span className="section-title-icon">🕐</span>
-        Vistos recientemente
+        {lang === 'en' ? 'Recently viewed' : 'Vistos recientemente'}
       </div>
       <div className="recently-viewed-list">
         {articles.map((art) => (
           <Link key={art.id} href={`/articulo/${art.slug}`} className="recently-viewed-item">
             <span className="recently-viewed-icon">📄</span>
-            <span className="recently-viewed-title">{art.title}</span>
+            <span className="recently-viewed-title">{translatedTitles[art.id] ?? art.title}</span>
             <span className="recently-viewed-arrow">›</span>
           </Link>
         ))}
